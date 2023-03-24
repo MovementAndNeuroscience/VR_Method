@@ -1,0 +1,782 @@
+---
+title: "Puplishable script for ATTENTION paper"
+author: "Rasmus Ahmt & Marta Topor"
+date: "2023-3-22"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+	eval = TRUE,
+	echo = FALSE,
+	message = FALSE,
+	warning = FALSE
+)
+library(tidyverse)
+library(ggpubr) 
+library(rstatix)
+library(rmarkdown)
+library(emmeans)
+library(lmerTest) 
+library(multcomp)
+library(dplyr)
+```
+
+```{r Import loop and data formatting}
+## function that change "," to ". https://stackoverflow.com/questions/59380129/changing-to-within-a-function-in-r 
+convert_number <- function(x){
+  x <- as.character(x)
+  x <- gsub(pattern = ",", replacement = ".",x = x, fixed = TRUE)
+  x <- as.numeric(x)
+  return(x)
+}
+## 
+
+# This section of the script is responsible for importing data from the designated folder.
+# The purpose of importing it into a long and tidy format is to ensure that the data can be easily manipulated and analyzed using tidyverse.
+
+#_______________VR__________________________#
+# Firstly i wish to import all the VR data.
+# sett working directory
+setwd("/Users/rasmus/Desktop/Playore VR data/mellemskridt/Attention_data/VR attention data RAW") 
+# Instruct R to look in the directory and search for CSV files.
+list <- list.files(pattern = ".csv", recursive = TRUE)
+# "i" represents the current participant and is set to loop through all files in the directory.
+# It is set to loop from 1 to the length of the list of files in our directory.
+i <- 1:length(list)
+
+
+
+DF <- data.frame(
+  id = character(),
+  incongruent_and_audio_RT = numeric(),
+  Correct_answers_incongruent_and_audio = numeric(),
+  incongruent_and_visual_RT = numeric(),
+  Correct_answers_incongruent_and_visual = numeric(),
+  incongruent_and_audio.visual_RT = numeric(),
+  Correct_answers_incongruent_and_audio.visual = numeric(),
+  congruent_and_audio_RT = numeric(),
+  Correct_answers_congruent_and_audio = numeric(),
+  congruent_and_visual_RT = numeric(),
+  Correct_answers_congruent_and_visual = numeric(),
+  congruent_and_audio.visual_RT = numeric(),
+  Correct_answers_congruent_and_audio.visual = numeric(),
+  neutral_and_audio_RT = numeric(),
+  Correct_answers_neutral_and_audio = numeric(),
+  neutral_and_visual_RT = numeric(),
+  Correct_answers_neutral_and_visual = numeric(),
+  neutral_and_audio.visual_RT = numeric(),
+  Correct_answers_neutral_and_audio.visual = numeric(),
+  stringsAsFactors = FALSE
+)
+
+
+
+# settup import and extract loop
+for (i in list)
+{
+  myData <- read.csv2(i)
+  
+  ## inconguent
+  # incongruent_and_audio
+  incongruent_and_audio1 <- subset(myData, Answer.Codes.Block1=="1" & Presented.Condition.Block1=="Incongruent" & Distractor.Modality.Block1=="audio")
+  incongruent_and_audio <- convert_number(incongruent_and_audio1$ReactionTime.Block1)
+  
+  if(is_empty(incongruent_and_audio)==TRUE){incongruent_and_audio_RT=0}else{incongruent_and_audio_RT <- mean(incongruent_and_audio)}
+  if(is_empty(incongruent_and_audio)==TRUE){Correct_answers_incongruent_and_audio=0}else{ Correct_answers_incongruent_and_audio <- length(incongruent_and_audio1$Answers.Block1)}
+  
+  # incongruent_and_visual
+  incongruent_and_visual1 <- subset(myData, Answer.Codes.Block1=="1" & Presented.Condition.Block1=="Incongruent" & Distractor.Modality.Block1=="visual")
+  incongruent_and_visual <- convert_number(incongruent_and_visual1$ReactionTime.Block1)
+  
+  if(is_empty(incongruent_and_visual)==TRUE){incongruent_and_visual_RT=0}else{incongruent_and_visual_RT <- mean(incongruent_and_visual)}
+  if(is_empty(incongruent_and_visual)==TRUE){Correct_answers_incongruent_and_visual=0}else{ Correct_answers_incongruent_and_visual <- length(incongruent_and_visual1$Answers.Block1)}
+  
+  # incongruent_and_visual and audio
+  incongruent_and_audio.visual1 <- subset(myData, Answer.Codes.Block1=="1" & Presented.Condition.Block1=="Incongruent" & Distractor.Modality.Block1=="audio visual")
+  incongruent_and_audio.visual <- convert_number(incongruent_and_audio.visual1$ReactionTime.Block1)
+  
+  if(is_empty(incongruent_and_audio.visual)==TRUE){incongruent_and_audio.visual_RT=0}else{incongruent_and_audio.visual_RT <- mean(incongruent_and_audio.visual)}
+  if(is_empty(incongruent_and_audio.visual)==TRUE){Correct_answers_incongruent_and_audio.visual=0}else{Correct_answers_incongruent_and_audio.visual <- length(incongruent_and_audio.visual1$Answers.Block1)}
+  
+  ## congruent
+  # congruent_and_audio
+  congruent_and_audio1 <- subset(myData, Answer.Codes.Block1=="1" & Presented.Condition.Block1=="Congruent" & Distractor.Modality.Block1=="audio")
+  congruent_and_audio <- convert_number(congruent_and_audio1$ReactionTime.Block1)
+  
+  if(is_empty(congruent_and_audio)==TRUE){congruent_and_audio_RT=0}else{congruent_and_audio_RT <- mean(congruent_and_audio)}
+  if(is_empty(congruent_and_audio)==TRUE){Correct_answers_congruent_and_audio=0}else{ Correct_answers_congruent_and_audio <- length(congruent_and_audio1$Answers.Block1)}
+  
+  # congruent_and_visual
+  congruent_and_visual1 <- subset(myData, Answer.Codes.Block1=="1" & Presented.Condition.Block1=="Congruent" & Distractor.Modality.Block1=="visual")
+  congruent_and_visual <- convert_number(congruent_and_visual1$ReactionTime.Block1)
+  
+  if(is_empty(congruent_and_visual)==TRUE){congruent_and_visual_RT=0}else{congruent_and_visual_RT <- mean(congruent_and_visual)}
+  if(is_empty(congruent_and_visual)==TRUE){Correct_answers_congruent_and_visual=0}else{ Correct_answers_congruent_and_visual <- length(congruent_and_visual1$Answers.Block1)}
+  
+  # congruent_and_visual and audio
+  congruent_and_audio.visual1 <- subset(myData, Answer.Codes.Block1=="1" & Presented.Condition.Block1=="Congruent" & Distractor.Modality.Block1=="audio visual")
+  congruent_and_audio.visual <- convert_number(congruent_and_audio.visual1$ReactionTime.Block1)
+  
+  if(is_empty(congruent_and_audio.visual)==TRUE){congruent_and_audio.visual_RT=0}else{congruent_and_audio.visual_RT <- mean(congruent_and_audio.visual)}
+  if(is_empty(congruent_and_audio.visual)==TRUE){Correct_answers_congruent_and_audio.visual=0}else{ Correct_answers_congruent_and_audio.visual <- length(congruent_and_audio.visual1$Answers.Block1)}
+  
+  ## neutral
+  # neutral_and_audio
+  neutral_and_audio1 <- subset(myData, Answer.Codes.Block1=="1" & Presented.Condition.Block1=="Neutral" & Distractor.Modality.Block1=="audio")
+  neutral_and_audio <- convert_number(neutral_and_audio1$ReactionTime.Block1)
+  
+  if(is_empty(neutral_and_audio)==TRUE){neutral_and_audio_RT=0}else{neutral_and_audio_RT <- mean(neutral_and_audio)}
+  if(is_empty(neutral_and_audio)==TRUE){Correct_answers_neutral_and_audio=0}else{ Correct_answers_neutral_and_audio <- length(neutral_and_audio1$Answers.Block1)}
+  
+  # neutral_and_visual
+  neutral_and_visual1 <- subset(myData, Answer.Codes.Block1=="1" & Presented.Condition.Block1=="Neutral" & Distractor.Modality.Block1=="visual")
+  neutral_and_visual <- convert_number(neutral_and_visual1$ReactionTime.Block1)
+  
+  if(is_empty(neutral_and_visual)==TRUE){neutral_and_visual_RT=0}else{neutral_and_visual_RT <- mean(neutral_and_visual)}
+  if(is_empty(neutral_and_visual)==TRUE){Correct_answers_neutral_and_visual=0}else{ Correct_answers_neutral_and_visual <- length(neutral_and_visual1$Answers.Block1)}
+  
+  # neutral_and_visual and audio
+  neutral_and_audio.visual1 <- subset(myData, Answer.Codes.Block1=="1" & Presented.Condition.Block1=="Neutral" & Distractor.Modality.Block1=="audio visual")
+  neutral_and_audio.visual <- convert_number(neutral_and_audio.visual1$ReactionTime.Block1)
+  
+  if(is_empty(neutral_and_audio.visual)==TRUE){neutral_and_audio.visual_RT=0}else{neutral_and_audio.visual_RT <- mean(neutral_and_audio.visual)}
+  if(is_empty(neutral_and_audio.visual)==TRUE){Correct_answers_neutral_and_audio.visual=0}else{ Correct_answers_neutral_and_audio.visual <- length(neutral_and_audio.visual1$Answers.Block1)}
+  
+  DF[i,] <- data.frame(i,incongruent_and_audio_RT,Correct_answers_incongruent_and_audio,
+                       incongruent_and_visual_RT,Correct_answers_incongruent_and_visual,
+                       incongruent_and_audio.visual_RT,Correct_answers_incongruent_and_audio.visual,
+                       congruent_and_audio_RT,Correct_answers_congruent_and_audio,
+                       congruent_and_visual_RT,Correct_answers_congruent_and_visual,
+                       congruent_and_audio.visual_RT,Correct_answers_congruent_and_audio.visual,
+                       neutral_and_audio_RT,Correct_answers_neutral_and_audio,
+                       neutral_and_visual_RT,Correct_answers_neutral_and_visual,
+                       neutral_and_audio.visual_RT,Correct_answers_neutral_and_audio.visual)
+  
+}
+# specefy a new data sett thats a temporary data set to hold the information from the VR data, so we can reuse this loop for the PC files.
+VR_not_done <- DF
+
+
+#_______________PC___________________________#
+# Secondly i wish to import all the PC data.
+# sett working directory
+setwd("/Users/rasmus/Desktop/Playore VR data/mellemskridt/Attention_data/PC attention data RAW") 
+# Instruct R to look in the directory and search for CSV files.
+list <- list.files(pattern = ".csv", recursive = TRUE)
+# "i" represents the current participant and is set to loop through all files in the directory.
+# It is set to loop from 1 to the length of the list of files in our directory.
+i <- 1:length(list)
+
+
+
+DF <- data.frame(
+  id = character(),
+  incongruent_and_audio_RT = numeric(),
+  Correct_answers_incongruent_and_audio = numeric(),
+  incongruent_and_visual_RT = numeric(),
+  Correct_answers_incongruent_and_visual = numeric(),
+  incongruent_and_audio.visual_RT = numeric(),
+  Correct_answers_incongruent_and_audio.visual = numeric(),
+  congruent_and_audio_RT = numeric(),
+  Correct_answers_congruent_and_audio = numeric(),
+  congruent_and_visual_RT = numeric(),
+  Correct_answers_congruent_and_visual = numeric(),
+  congruent_and_audio.visual_RT = numeric(),
+  Correct_answers_congruent_and_audio.visual = numeric(),
+  neutral_and_audio_RT = numeric(),
+  Correct_answers_neutral_and_audio = numeric(),
+  neutral_and_visual_RT = numeric(),
+  Correct_answers_neutral_and_visual = numeric(),
+  neutral_and_audio.visual_RT = numeric(),
+  Correct_answers_neutral_and_audio.visual = numeric(),
+  stringsAsFactors = FALSE
+)
+
+
+  
+  
+# settup import and extract loop
+for (i in list)
+{
+  myData <- read.csv2(i)
+  
+  ## inconguent
+  # incongruent_and_audio
+  incongruent_and_audio1 <- subset(myData, Answer.Codes.Block1=="1" & Presented.Condition.Block1=="Incongruent" & Distractor.Modality.Block1=="audio")
+  incongruent_and_audio <- convert_number(incongruent_and_audio1$ReactionTime.Block1)
+  
+  if(is_empty(incongruent_and_audio)==TRUE){incongruent_and_audio_RT=0}else{incongruent_and_audio_RT <- mean(incongruent_and_audio)}
+  if(is_empty(incongruent_and_audio)==TRUE){Correct_answers_incongruent_and_audio=0}else{ Correct_answers_incongruent_and_audio <- length(incongruent_and_audio1$Answers.Block1)}
+  
+  # incongruent_and_visual
+  incongruent_and_visual1 <- subset(myData, Answer.Codes.Block1=="1" & Presented.Condition.Block1=="Incongruent" & Distractor.Modality.Block1=="visual")
+  incongruent_and_visual <- convert_number(incongruent_and_visual1$ReactionTime.Block1)
+  
+  if(is_empty(incongruent_and_visual)==TRUE){incongruent_and_visual_RT=0}else{incongruent_and_visual_RT <- mean(incongruent_and_visual)}
+  if(is_empty(incongruent_and_visual)==TRUE){Correct_answers_incongruent_and_visual=0}else{ Correct_answers_incongruent_and_visual <- length(incongruent_and_visual1$Answers.Block1)}
+  
+  # incongruent_and_visual and audio
+  incongruent_and_audio.visual1 <- subset(myData, Answer.Codes.Block1=="1" & Presented.Condition.Block1=="Incongruent" & Distractor.Modality.Block1=="audio visual")
+  incongruent_and_audio.visual <- convert_number(incongruent_and_audio.visual1$ReactionTime.Block1)
+  
+  if(is_empty(incongruent_and_audio.visual)==TRUE){incongruent_and_audio.visual_RT=0}else{incongruent_and_audio.visual_RT <- mean(incongruent_and_audio.visual)}
+  if(is_empty(incongruent_and_audio.visual)==TRUE){Correct_answers_incongruent_and_audio.visual=0}else{Correct_answers_incongruent_and_audio.visual <- length(incongruent_and_audio.visual1$Answers.Block1)}
+  
+  ## congruent
+  # congruent_and_audio
+  congruent_and_audio1 <- subset(myData, Answer.Codes.Block1=="1" & Presented.Condition.Block1=="Congruent" & Distractor.Modality.Block1=="audio")
+  congruent_and_audio <- convert_number(congruent_and_audio1$ReactionTime.Block1)
+  
+  if(is_empty(congruent_and_audio)==TRUE){congruent_and_audio_RT=0}else{congruent_and_audio_RT <- mean(congruent_and_audio)}
+  if(is_empty(congruent_and_audio)==TRUE){Correct_answers_congruent_and_audio=0}else{ Correct_answers_congruent_and_audio <- length(congruent_and_audio1$Answers.Block1)}
+  
+  # congruent_and_visual
+  congruent_and_visual1 <- subset(myData, Answer.Codes.Block1=="1" & Presented.Condition.Block1=="Congruent" & Distractor.Modality.Block1=="visual")
+  congruent_and_visual <- convert_number(congruent_and_visual1$ReactionTime.Block1)
+  
+  if(is_empty(congruent_and_visual)==TRUE){congruent_and_visual_RT=0}else{congruent_and_visual_RT <- mean(congruent_and_visual)}
+  if(is_empty(congruent_and_visual)==TRUE){Correct_answers_congruent_and_visual=0}else{ Correct_answers_congruent_and_visual <- length(congruent_and_visual1$Answers.Block1)}
+  
+  # congruent_and_visual and audio
+  congruent_and_audio.visual1 <- subset(myData, Answer.Codes.Block1=="1" & Presented.Condition.Block1=="Congruent" & Distractor.Modality.Block1=="audio visual")
+  congruent_and_audio.visual <- convert_number(congruent_and_audio.visual1$ReactionTime.Block1)
+  
+  if(is_empty(congruent_and_audio.visual)==TRUE){congruent_and_audio.visual_RT=0}else{congruent_and_audio.visual_RT <- mean(congruent_and_audio.visual)}
+  if(is_empty(congruent_and_audio.visual)==TRUE){Correct_answers_congruent_and_audio.visual=0}else{ Correct_answers_congruent_and_audio.visual <- length(congruent_and_audio.visual1$Answers.Block1)}
+  
+  ## neutral
+  # neutral_and_audio
+  neutral_and_audio1 <- subset(myData, Answer.Codes.Block1=="1" & Presented.Condition.Block1=="Neutral" & Distractor.Modality.Block1=="audio")
+  neutral_and_audio <- convert_number(neutral_and_audio1$ReactionTime.Block1)
+  
+  if(is_empty(neutral_and_audio)==TRUE){neutral_and_audio_RT=0}else{neutral_and_audio_RT <- mean(neutral_and_audio)}
+  if(is_empty(neutral_and_audio)==TRUE){Correct_answers_neutral_and_audio=0}else{ Correct_answers_neutral_and_audio <- length(neutral_and_audio1$Answers.Block1)}
+  
+  # neutral_and_visual
+  neutral_and_visual1 <- subset(myData, Answer.Codes.Block1=="1" & Presented.Condition.Block1=="Neutral" & Distractor.Modality.Block1=="visual")
+  neutral_and_visual <- convert_number(neutral_and_visual1$ReactionTime.Block1)
+  
+  if(is_empty(neutral_and_visual)==TRUE){neutral_and_visual_RT=0}else{neutral_and_visual_RT <- mean(neutral_and_visual)}
+  if(is_empty(neutral_and_visual)==TRUE){Correct_answers_neutral_and_visual=0}else{ Correct_answers_neutral_and_visual <- length(neutral_and_visual1$Answers.Block1)}
+  
+  # neutral_and_visual and audio
+  neutral_and_audio.visual1 <- subset(myData, Answer.Codes.Block1=="1" & Presented.Condition.Block1=="Neutral" & Distractor.Modality.Block1=="audio visual")
+  neutral_and_audio.visual <- convert_number(neutral_and_audio.visual1$ReactionTime.Block1)
+  
+  if(is_empty(neutral_and_audio.visual)==TRUE){neutral_and_audio.visual_RT=0}else{neutral_and_audio.visual_RT <- mean(neutral_and_audio.visual)}
+  if(is_empty(neutral_and_audio.visual)==TRUE){Correct_answers_neutral_and_audio.visual=0}else{ Correct_answers_neutral_and_audio.visual <- length(neutral_and_audio.visual1$Answers.Block1)}
+  
+  DF[i,] <- data.frame(i,incongruent_and_audio_RT,Correct_answers_incongruent_and_audio,
+                       incongruent_and_visual_RT,Correct_answers_incongruent_and_visual,
+                       incongruent_and_audio.visual_RT,Correct_answers_incongruent_and_audio.visual,
+                       congruent_and_audio_RT,Correct_answers_congruent_and_audio,
+                       congruent_and_visual_RT,Correct_answers_congruent_and_visual,
+                       congruent_and_audio.visual_RT,Correct_answers_congruent_and_audio.visual,
+                       neutral_and_audio_RT,Correct_answers_neutral_and_audio,
+                       neutral_and_visual_RT,Correct_answers_neutral_and_visual,
+                       neutral_and_audio.visual_RT,Correct_answers_neutral_and_audio.visual)
+  
+}
+# we create another temp file for for PC aswell
+PC_not_done <- DF 
+```
+
+```{r make it long tydy formate.}
+# Firstly we want to get rid of those file names in the id collumn and use the participants actually id names. 
+ID <- c(10103, 10106, 10107, 10108, 10110, 10113, 10114, 10116, 10117, 10123, 10124, 10126, 10127, 10128, 10129, 10131, 10133, 10134, 10136, 10137, 10138, 10139, 10153, 10154, 10156, 10157, 10158, 20002, 20003, 20005, 20006, 20008, 20009, 20020, 20021, 20022, 30002, 30003, 30004, 30006, 30009, 30010, 30012, 30013, 30019, 30020, 30022, 30023, 30024, 30025, 30026, 30027, 30028, 30030, 30032, 30033, 30034, 30035, 30036, 30040, 30042, 30044, 30046, 30048, 30049, 30051, 30052, 30053, 30054, 30055, 30058, 30060, 30061)
+PC_not_done <- mutate(PC_not_done, id = ID)
+VR_not_done <- mutate(VR_not_done, id = ID)
+
+#_______________PC___________________________#
+# create a empty data frame that's empty ready to fill it up
+LONG_PC_DATA <- data.frame(
+  id = character(),
+  stimuli_type = character(),
+  stimuli_compatibility = character(),
+  RT = numeric(),
+  corrects = numeric(),
+  stringsAsFactors = FALSE
+)
+
+# set up a loop thats take every ID and execute the loop.
+unique_ID <- unique(PC_not_done$id)
+for (i in seq_along(unique_ID)) {
+  # filter the data frame to get the rows for the current participant
+  participant_data <- filter(PC_not_done, id == unique_ID[i])
+  # extract RT
+  RT <- participant_data$incongruent_and_audio_RT
+  # define the ID 
+  ID <- participant_data$id
+  # extract corrects
+  corrects <- participant_data$Correct_answers_incongruent_and_audio
+  # define the stimuli type
+  stimuli_type <- "audio"
+  # define the stimuli compatibility
+  stimuli_compatibility <- "incongurent"
+  # add the new row to the data frame 
+  LONG_PC_DATA <- rbind(LONG_PC_DATA, data.frame(ID,stimuli_type,stimuli_compatibility,RT,corrects))
+  
+  # filter the data frame to get the rows for the current participant
+  participant_data <- filter(PC_not_done, id == unique_ID[i])
+  # extract RT
+  RT <- participant_data$incongruent_and_visual_RT
+  # define the ID 
+  ID <- participant_data$id
+  # extract corrects
+  corrects <- participant_data$Correct_answers_incongruent_and_visual
+  # define the stimuli type
+  stimuli_type <- "visual"
+  # define the stimuli compatibility
+  stimuli_compatibility <- "incongurent"
+  # add the new row to the data frame 
+  LONG_PC_DATA <- rbind(LONG_PC_DATA, data.frame(ID,stimuli_type,stimuli_compatibility,RT,corrects))
+  
+  # filter the data frame to get the rows for the current participant
+  participant_data <- filter(PC_not_done, id == unique_ID[i])
+  # extract RT
+  RT <- participant_data$incongruent_and_audio.visual_RT
+  # define the ID 
+  ID <- participant_data$id
+  # extract corrects
+  corrects <- participant_data$Correct_answers_incongruent_and_audio.visual
+  # define the stimuli type
+  stimuli_type <- "audio.visual"
+  # define the stimuli compatibility
+  stimuli_compatibility <- "incongurent"
+  # add the new row to the data frame 
+  LONG_PC_DATA <- rbind(LONG_PC_DATA, data.frame(ID,stimuli_type,stimuli_compatibility,RT,corrects))
+ 
+  # filter the data frame to get the rows for the current participant
+  participant_data <- filter(PC_not_done, id == unique_ID[i])
+  # extract RT
+  RT <- participant_data$congruent_and_audio_RT
+  # define the ID 
+  ID <- participant_data$id
+  # extract corrects
+  corrects <- participant_data$Correct_answers_congruent_and_audio
+  # define the stimuli type
+  stimuli_type <- "audio"
+  # define the stimuli compatibility
+  stimuli_compatibility <- "congruent"
+  # add the new row to the data frame 
+  LONG_PC_DATA <- rbind(LONG_PC_DATA, data.frame(ID,stimuli_type,stimuli_compatibility,RT,corrects))
+  
+  # filter the data frame to get the rows for the current participant
+  participant_data <- filter(PC_not_done, id == unique_ID[i])
+  # extract RT
+  RT <- participant_data$congruent_and_visual_RT
+  # define the ID 
+  ID <- participant_data$id
+  # extract corrects
+  corrects <- participant_data$Correct_answers_congruent_and_visual
+  # define the stimuli type
+  stimuli_type <- "visual"
+  # define the stimuli compatibility
+  stimuli_compatibility <- "congruent"
+  # add the new row to the data frame 
+  LONG_PC_DATA <- rbind(LONG_PC_DATA, data.frame(ID,stimuli_type,stimuli_compatibility,RT,corrects))
+  
+  # filter the data frame to get the rows for the current participant
+  participant_data <- filter(PC_not_done, id == unique_ID[i])
+  # extract RT
+  RT <- participant_data$congruent_and_audio.visual_RT
+  # define the ID 
+  ID <- participant_data$id
+  # extract corrects
+  corrects <- participant_data$Correct_answers_congruent_and_audio.visual
+  # define the stimuli type
+  stimuli_type <- "audio.visual"
+  # define the stimuli compatibility
+  stimuli_compatibility <- "congruent"
+  # add the new row to the data frame 
+  LONG_PC_DATA <- rbind(LONG_PC_DATA, data.frame(ID,stimuli_type,stimuli_compatibility,RT,corrects))
+  
+  # filter the data frame to get the rows for the current participant
+  participant_data <- filter(PC_not_done, id == unique_ID[i])
+  # extract RT
+  RT <- participant_data$neutral_and_audio_RT
+  # define the ID 
+  ID <- participant_data$id
+  # extract corrects
+  corrects <- participant_data$Correct_answers_neutral_and_audio
+  # define the stimuli type
+  stimuli_type <- "audio"
+  # define the stimuli compatibility
+  stimuli_compatibility <- "neutral"
+  # add the new row to the data frame 
+  LONG_PC_DATA <- rbind(LONG_PC_DATA, data.frame(ID,stimuli_type,stimuli_compatibility,RT,corrects))
+  
+  # filter the data frame to get the rows for the current participant
+  participant_data <- filter(PC_not_done, id == unique_ID[i])
+  # extract RT
+  RT <- participant_data$neutral_and_visual_RT
+  # define the ID 
+  ID <- participant_data$id
+  # extract corrects
+  corrects <- participant_data$Correct_answers_neutral_and_visual
+  # define the stimuli type
+  stimuli_type <- "visual"
+  # define the stimuli compatibility
+  stimuli_compatibility <- "neutral"
+  # add the new row to the data frame 
+  LONG_PC_DATA <- rbind(LONG_PC_DATA, data.frame(ID,stimuli_type,stimuli_compatibility,RT,corrects))
+  
+  # filter the data frame to get the rows for the current participant
+  participant_data <- filter(PC_not_done, id == unique_ID[i])
+  # extract RT
+  RT <- participant_data$neutral_and_audio.visual_RT
+  # define the ID 
+  ID <- participant_data$id
+  # extract corrects
+  corrects <- participant_data$Correct_answers_neutral_and_audio.visual
+  # define the stimuli type
+  stimuli_type <- "audio.visual"
+  # define the stimuli compatibility
+  stimuli_compatibility <- "neutral"
+  # add the new row to the data frame 
+  LONG_PC_DATA <- rbind(LONG_PC_DATA, data.frame(ID,stimuli_type,stimuli_compatibility,RT,corrects))
+}
+
+#_______________VR___________________________#
+# create a empty data frame that's empty ready to fill it up
+LONG_VR_DATA <- data.frame(
+  id = character(),
+  stimuli_type = character(),
+  stimuli_compatibility = character(),
+  RT = numeric(),
+  corrects = numeric(),
+  stringsAsFactors = FALSE
+)
+
+# set up a loop thats take every ID and execute the loop.
+unique_ID <- unique(VR_not_done$id)
+for (i in seq_along(unique_ID)) {
+  # filter the data frame to get the rows for the current participant
+  participant_data <- filter(VR_not_done, id == unique_ID[i])
+  # extract RT
+  RT <- participant_data$incongruent_and_audio_RT
+  # define the ID 
+  ID <- participant_data$id
+  # extract corrects
+  corrects <- participant_data$Correct_answers_incongruent_and_audio
+  # define the stimuli type
+  stimuli_type <- "audio"
+  # define the stimuli compatibility
+  stimuli_compatibility <- "incongurent"
+  # add the new row to the data frame 
+  LONG_VR_DATA <- rbind(LONG_VR_DATA, data.frame(ID,stimuli_type,stimuli_compatibility,RT,corrects))
+  
+  # filter the data frame to get the rows for the current participant
+  participant_data <- filter(VR_not_done, id == unique_ID[i])
+  # extract RT
+  RT <- participant_data$incongruent_and_visual_RT
+  # define the ID 
+  ID <- participant_data$id
+  # extract corrects
+  corrects <- participant_data$Correct_answers_incongruent_and_visual
+  # define the stimuli type
+  stimuli_type <- "visual"
+  # define the stimuli compatibility
+  stimuli_compatibility <- "incongurent"
+  # add the new row to the data frame 
+  LONG_VR_DATA <- rbind(LONG_VR_DATA, data.frame(ID,stimuli_type,stimuli_compatibility,RT,corrects))
+  
+  # filter the data frame to get the rows for the current participant
+  participant_data <- filter(VR_not_done, id == unique_ID[i])
+  # extract RT
+  RT <- participant_data$incongruent_and_audio.visual_RT
+  # define the ID 
+  ID <- participant_data$id
+  # extract corrects
+  corrects <- participant_data$Correct_answers_incongruent_and_audio.visual
+  # define the stimuli type
+  stimuli_type <- "audio.visual"
+  # define the stimuli compatibility
+  stimuli_compatibility <- "incongurent"
+  # add the new row to the data frame 
+  LONG_VR_DATA <- rbind(LONG_VR_DATA, data.frame(ID,stimuli_type,stimuli_compatibility,RT,corrects))
+ 
+  # filter the data frame to get the rows for the current participant
+  participant_data <- filter(VR_not_done, id == unique_ID[i])
+  # extract RT
+  RT <- participant_data$congruent_and_audio_RT
+  # define the ID 
+  ID <- participant_data$id
+  # extract corrects
+  corrects <- participant_data$Correct_answers_congruent_and_audio
+  # define the stimuli type
+  stimuli_type <- "audio"
+  # define the stimuli compatibility
+  stimuli_compatibility <- "congruent"
+  # add the new row to the data frame 
+  LONG_VR_DATA <- rbind(LONG_VR_DATA, data.frame(ID,stimuli_type,stimuli_compatibility,RT,corrects))
+  
+  # filter the data frame to get the rows for the current participant
+  participant_data <- filter(VR_not_done, id == unique_ID[i])
+  # extract RT
+  RT <- participant_data$congruent_and_visual_RT
+  # define the ID 
+  ID <- participant_data$id
+  # extract corrects
+  corrects <- participant_data$Correct_answers_congruent_and_visual
+  # define the stimuli type
+  stimuli_type <- "visual"
+  # define the stimuli compatibility
+  stimuli_compatibility <- "congruent"
+  # add the new row to the data frame 
+  LONG_VR_DATA <- rbind(LONG_VR_DATA, data.frame(ID,stimuli_type,stimuli_compatibility,RT,corrects))
+  
+  # filter the data frame to get the rows for the current participant
+  participant_data <- filter(VR_not_done, id == unique_ID[i])
+  # extract RT
+  RT <- participant_data$congruent_and_audio.visual_RT
+  # define the ID 
+  ID <- participant_data$id
+  # extract corrects
+  corrects <- participant_data$Correct_answers_congruent_and_audio.visual
+  # define the stimuli type
+  stimuli_type <- "audio.visual"
+  # define the stimuli compatibility
+  stimuli_compatibility <- "congruent"
+  # add the new row to the data frame 
+  LONG_VR_DATA <- rbind(LONG_VR_DATA, data.frame(ID,stimuli_type,stimuli_compatibility,RT,corrects))
+  
+  # filter the data frame to get the rows for the current participant
+  participant_data <- filter(VR_not_done, id == unique_ID[i])
+  # extract RT
+  RT <- participant_data$neutral_and_audio_RT
+  # define the ID 
+  ID <- participant_data$id
+  # extract corrects
+  corrects <- participant_data$Correct_answers_neutral_and_audio
+  # define the stimuli type
+  stimuli_type <- "audio"
+  # define the stimuli compatibility
+  stimuli_compatibility <- "neutral"
+  # add the new row to the data frame 
+  LONG_VR_DATA <- rbind(LONG_VR_DATA, data.frame(ID,stimuli_type,stimuli_compatibility,RT,corrects))
+  
+  # filter the data frame to get the rows for the current participant
+  participant_data <- filter(VR_not_done, id == unique_ID[i])
+  # extract RT
+  RT <- participant_data$neutral_and_visual_RT
+  # define the ID 
+  ID <- participant_data$id
+  # extract corrects
+  corrects <- participant_data$Correct_answers_neutral_and_visual
+  # define the stimuli type
+  stimuli_type <- "visual"
+  # define the stimuli compatibility
+  stimuli_compatibility <- "neutral"
+  # add the new row to the data frame 
+  LONG_VR_DATA <- rbind(LONG_VR_DATA, data.frame(ID,stimuli_type,stimuli_compatibility,RT,corrects))
+  
+  # filter the data frame to get the rows for the current participant
+  participant_data <- filter(VR_not_done, id == unique_ID[i])
+  # extract RT
+  RT <- participant_data$neutral_and_audio.visual_RT
+  # define the ID 
+  ID <- participant_data$id
+  # extract corrects
+  corrects <- participant_data$Correct_answers_neutral_and_audio.visual
+  # define the stimuli type
+  stimuli_type <- "audio.visual"
+  # define the stimuli compatibility
+  stimuli_compatibility <- "neutral"
+  # add the new row to the data frame 
+  LONG_VR_DATA <- rbind(LONG_VR_DATA, data.frame(ID,stimuli_type,stimuli_compatibility,RT,corrects))
+}
+# putting the two data sets together. 
+ATTENTION <- rbind(LONG_VR_DATA,LONG_PC_DATA)
+# we need to ensure we can tell the environments apart, therefor we need to ad PC & VR
+ATTENTION$condition <- rep(c("VR", "PC"), each = 657)
+```
+
+
+```{r chance lvl excluding}
+#___________________PC________________________#
+setwd("/Users/rasmus/Desktop/Playore VR data/mellemskridt/Attention_data/PC attention data RAW") 
+# Instruct R to look in the directory and search for CSV files.
+list <- list.files(pattern = ".csv", recursive = TRUE)
+# "i" represents the current participant and is set to loop through all files in the directory.
+# It is set to loop from 1 to the length of the list of files in our directory.
+i <- 1:length(list)
+
+all_trials = 144
+
+# creating a empty data frame, that can hold the grand performance data. 
+PC_df_grandperformance <- data_frame( 
+  id = character(),
+  corrects = numeric(),
+  RT = numeric(),
+  acc = numeric(),
+  no_answerd = numeric(),
+  total_answerd = numeric(),
+  stringsAsFactors = FALSE
+)
+
+# settup import and extract loop
+for (i in list)
+{
+  myData <- read.csv2(i)
+  
+  corrects_answers_subset <- subset(myData, myData$Answer.Codes.Block1=="1")
+  # we need the converte_number funktion to 
+  RT <- mean(convert_number(corrects_answers_subset$ReactionTime.Block1))
+  corrects <- sum(corrects_answers_subset$Answer.Codes.Block1=="1")
+  
+  # Here it is importen not to use the correct answers subset. because we need their no answers 
+  no_answerd <- sum(myData$Answer.Codes.Block1=="0")
+  # calculate participants total answered trials, to get the participants accuracy on their answered trials. 
+  total_answerd <-all_trials - no_answerd
+  # accuracy on total asnwerd trials. 
+  acc <- (corrects/total_answerd)*100
+  # create af dataframe
+  PC_df_grandperformance <- rbind(PC_df_grandperformance,data.frame(i,corrects,RT,acc,no_answerd,total_answerd))
+}
+# replace the file names with ID the participants ID numbers
+ID <- c(10103, 10106, 10107, 10108, 10110, 10113, 10114, 10116, 10117, 10123, 10124, 10126, 10127, 10128, 10129, 10131, 10133, 10134, 10136, 10137, 10138, 10139, 10153, 10154, 10156, 10157, 10158, 20002, 20003, 20005, 20006, 20008, 20009, 20020, 20021, 20022, 30002, 30003, 30004, 30006, 30009, 30010, 30012, 30013, 30019, 30020, 30022, 30023, 30024, 30025, 30026, 30027, 30028, 30030, 30032, 30033, 30034, 30035, 30036, 30040, 30042, 30044, 30046, 30048, 30049, 30051, 30052, 30053, 30054, 30055, 30058, 30060, 30061)
+PC_df_grandperformance <- mutate(PC_df_grandperformance, i = ID)
+# subset the data based on Performance values below 55%
+sub_data <- PC_df_grandperformance[PC_df_grandperformance$acc <= 55,]
+# extract the ID column values and store them in a list
+PC_bellow_55Percentage <- sub_data$i
+
+#___________________VR________________________#
+setwd("/Users/rasmus/Desktop/Playore VR data/mellemskridt/Attention_data/VR attention data RAW") 
+# Instruct R to look in the directory and search for CSV files.
+list <- list.files(pattern = ".csv", recursive = TRUE)
+# "i" represents the current participant and is set to loop through all files in the directory.
+# It is set to loop from 1 to the length of the list of files in our directory.
+i <- 1:length(list)
+
+all_trials = 144
+
+# creating a empty data frame, that can hold the grand performance data. 
+VR_df_grandperformance <- data_frame( 
+  id = character(),
+  corrects = numeric(),
+  RT = numeric(),
+  acc = numeric(),
+  no_answerd = numeric(),
+  total_answerd = numeric(),
+  stringsAsFactors = FALSE
+)
+
+# settup import and extract loop
+for (i in list)
+{
+  myData <- read.csv2(i)
+  
+  corrects_answers_subset <- subset(myData, myData$Answer.Codes.Block1=="1")
+  # we need the converte_number funktion to 
+  RT <- mean(convert_number(corrects_answers_subset$ReactionTime.Block1))
+  corrects <- sum(corrects_answers_subset$Answer.Codes.Block1=="1")
+  
+  # Here it is importen not to use the correct answers subset. because we need their no answers 
+  no_answerd <- sum(myData$Answer.Codes.Block1=="0")
+  # calculate participants total answered trials, to get the participants accuracy on their answered trials. 
+  total_answerd <-all_trials - no_answerd
+  # accuracy on total asnwerd trials. 
+  acc <- (corrects/total_answerd)*100
+  # create af dataframe
+  VR_df_grandperformance <- rbind(VR_df_grandperformance,data.frame(i,corrects,RT,acc,no_answerd,total_answerd))
+}
+# replace the file names with ID the participants ID numbers
+ID <- c(10103, 10106, 10107, 10108, 10110, 10113, 10114, 10116, 10117, 10123, 10124, 10126, 10127, 10128, 10129, 10131, 10133, 10134, 10136, 10137, 10138, 10139, 10153, 10154, 10156, 10157, 10158, 20002, 20003, 20005, 20006, 20008, 20009, 20020, 20021, 20022, 30002, 30003, 30004, 30006, 30009, 30010, 30012, 30013, 30019, 30020, 30022, 30023, 30024, 30025, 30026, 30027, 30028, 30030, 30032, 30033, 30034, 30035, 30036, 30040, 30042, 30044, 30046, 30048, 30049, 30051, 30052, 30053, 30054, 30055, 30058, 30060, 30061)
+VR_df_grandperformance <- mutate(VR_df_grandperformance, i = ID)
+# subset the data based on Performance values below 55%
+sub_data <- VR_df_grandperformance[VR_df_grandperformance$acc <= 55,]
+# extract the ID column values and store them in a list
+VR_bellow_55Percentage <- sub_data$i
+
+
+```
+
+```{r outlier removal}
+# Now that we have to lists with the participants who did not perform above chance lvl, we can extract them from the complete data set. 
+PC_bellow_55Percentage
+VR_bellow_55Percentage
+
+# find the common IDs in both lists
+common_IDs <- intersect(PC_bellow_55Percentage, VR_bellow_55Percentage)
+# find the IDs that are only in the PC_bellow_55Percentage list
+PC_only <- setdiff(PC_bellow_55Percentage, VR_bellow_55Percentage)
+# find the IDs that are only in the VR_bellow_55Percentage list
+VR_only <- setdiff(VR_bellow_55Percentage, PC_bellow_55Percentage)
+# print the results
+cat("The number of identical IDs in both lists is:", length(common_IDs), "\n")
+cat("The common IDs are:", common_IDs, "\n\n")
+cat("The number of IDs only in the PC_bellow_55Percentage list is:", length(PC_only), "\n")
+cat("The IDs only in the PC_bellow_55Percentage list are:", PC_only, "\n\n")
+cat("The number of IDs only in the VR_bellow_55Percentage list is:", length(VR_only), "\n")
+cat("The IDs only in the VR_bellow_55Percentage list are:", VR_only)
+
+# 39 children needs to be removed from the complete data set.
+cihldren_who_did_not_meet_55percentage = length(common_IDs)+length(PC_only)+length(VR_only)
+
+# quality results
+length(PC_only)/cihldren_who_did_not_meet_55percentage*100 # percentage of children who did not perform over 55% in the PC condition
+length(VR_only)/cihldren_who_did_not_meet_55percentage*100 # percentage of children who did not perform over 55% in the VR condition
+length(common_IDs)/cihldren_who_did_not_meet_55percentage*100 # percentage of children who did not perform over 55% in both condition 
+
+# removal of children bellow 55% accuracy.
+ATTENTION_filtered <- ATTENTION
+ATTENTION_filtered <- filter(ATTENTION_filtered, !ID %in% common_IDs)
+ATTENTION_filtered <- filter(ATTENTION_filtered, !ID %in% PC_only)
+ATTENTION_filtered <- filter(ATTENTION_filtered, !ID %in% VR_only)
+
+
+# binding the two 
+# Bind VR_df_grandperformance and PC_df_grandperformance together
+combined_df <- rbind(VR_df_grandperformance, PC_df_grandperformance)
+# adding a column with the condition label.
+combined_df$condition <- rep(c("VR", "PC"), each = 73)
+# removing participants that did not meet the 55% critiria for the later outling removal
+combined_df_filtered <- combined_df
+combined_df_filtered <- filter(combined_df_filtered, !i %in% common_IDs)
+combined_df_filtered <- filter(combined_df_filtered, !i %in% PC_only)
+combined_df_filtered <- filter(combined_df_filtered, !i %in% VR_only)
+
+
+# calculateing the Z scores which represents the amount of standard deviations (SD) the participants is from the mean
+  combined_df_filtered <- combined_df_filtered %>%
+   mutate(zscore =(combined_df_filtered$corrects - mean(combined_df_filtered$corrects, na.rm =T))/sd(combined_df_filtered$corrects, na.rm =T))
+ ID <- combined_df_filtered$i
+ group <-combined_df_filtered$condition
+ z <- combined_df_filtered$zscore
+ performance <- combined_df_filtered$corrects
+ data.frame(ID,group,performance,z)
+ 
+  combined_df_filtered <- combined_df_filtered %>%
+   mutate(zscore =(combined_df_filtered$RT - mean(combined_df_filtered$RT, na.rm =T))/sd(combined_df_filtered$RT, na.rm =T))
+ ID <- combined_df_filtered$i
+ group <-combined_df_filtered$condition
+ z <- combined_df_filtered$zscore
+ performance <- combined_df_filtered$RT
+ data.frame(ID,group,performance,z)
+ 
+ # removing participants that's outling more than 2+-sd 
+  ATTENTION_filtered <- filter(ATTENTION_filtered, ID !="20002")
+    ATTENTION_filtered <- filter(ATTENTION_filtered, ID !="30035")
+    
+# setting the complete data set where outliers and partcipants who did not meet 55% criteria are removed
+    ATTENTION<- ATTENTION_filtered
+```
+
+```{r distribution and variance tjek}
+ggqqplot(ATTENTION, "RT", ggtheme = theme_bw()) +
+  facet_grid(stimuli_type ~ condition  ~ stimuli_compatibility)
+
+ggqqplot(ATTENTION, "corrects", ggtheme = theme_bw()) +
+  facet_grid(stimuli_type ~ condition  ~ stimuli_compatibility)
+
+  ATTENTION %>%
+  group_by(stimuli_compatibility , stimuli_type) %>%
+  levene_test(RT ~ condition)
+  
+  ATTENTION %>%
+  group_by(stimuli_compatibility , stimuli_type) %>%
+  levene_test(corrects ~ condition)
+```

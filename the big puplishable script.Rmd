@@ -594,7 +594,7 @@ ATTENTION$condition <- rep(c("VR", "PC"), each = 657)
 ```
 
 
-```{r chance lvl excluding}
+```{r loop grandperformance, for outlier removal}
 #___________________PC________________________#
 setwd("/Users/rasmus/Desktop/Playore VR data/mellemskridt/Attention_data/PC attention data RAW") 
 # Instruct R to look in the directory and search for CSV files.
@@ -622,7 +622,7 @@ for (i in list)
   myData <- read.csv2(i)
   
   corrects_answers_subset <- subset(myData, myData$Answer.Codes.Block1=="1")
-  # we need the converte_number funktion to 
+# we need the converte_number funktion to 
   RT <- mean(convert_number(corrects_answers_subset$ReactionTime.Block1))
   corrects <- sum(corrects_answers_subset$Answer.Codes.Block1=="1")
   
@@ -706,17 +706,17 @@ PC_only <- setdiff(PC_bellow_55Percentage, VR_bellow_55Percentage)
 # find the IDs that are only in the VR_bellow_55Percentage list
 VR_only <- setdiff(VR_bellow_55Percentage, PC_bellow_55Percentage)
 # print the results
-cat("The number of identical IDs in both lists is:", length(common_IDs), "\n")
-cat("The common IDs are:", common_IDs, "\n\n")
-cat("The number of IDs only in the PC_bellow_55Percentage list is:", length(PC_only), "\n")
-cat("The IDs only in the PC_bellow_55Percentage list are:", PC_only, "\n\n")
-cat("The number of IDs only in the VR_bellow_55Percentage list is:", length(VR_only), "\n")
+cat("The number of identical IDs in both lists is:", length(common_IDs))
+cat("The common IDs are:", common_IDs)
+cat("The number of IDs only in the PC_bellow_55Percentage list is:", length(PC_only))
+cat("The IDs only in the PC_bellow_55Percentage list are:", PC_only)
+cat("The number of IDs only in the VR_bellow_55Percentage list is:", length(VR_only))
 cat("The IDs only in the VR_bellow_55Percentage list are:", VR_only)
 
 # 39 children needs to be removed from the complete data set.
 cihldren_who_did_not_meet_55percentage = length(common_IDs)+length(PC_only)+length(VR_only)
 
-# quality results
+# Great! We have obtained quality results from our analysis. As a next step, we can calculate the percentage of children that did not meet the 55% criteria in each condition. This will help us understand the impact of the experimental conditions on participant performance and identify any potential limitations of the study.
 length(PC_only)/cihldren_who_did_not_meet_55percentage*100 # percentage of children who did not perform over 55% in the PC condition
 length(VR_only)/cihldren_who_did_not_meet_55percentage*100 # percentage of children who did not perform over 55% in the VR condition
 length(common_IDs)/cihldren_who_did_not_meet_55percentage*100 # percentage of children who did not perform over 55% in both condition 
@@ -728,19 +728,18 @@ ATTENTION_filtered <- filter(ATTENTION_filtered, !ID %in% PC_only)
 ATTENTION_filtered <- filter(ATTENTION_filtered, !ID %in% VR_only)
 
 
-# binding the two 
 # Bind VR_df_grandperformance and PC_df_grandperformance together
 combined_df <- rbind(VR_df_grandperformance, PC_df_grandperformance)
 # adding a column with the condition label.
 combined_df$condition <- rep(c("VR", "PC"), each = 73)
-# removing participants that did not meet the 55% critiria for the later outling removal
+# remove any participants who did not meet the 55% criteria before proceeding with the later step of removing outliers. This will ensure that we are only removing outliers from a reliable and consistent data set.
 combined_df_filtered <- combined_df
 combined_df_filtered <- filter(combined_df_filtered, !i %in% common_IDs)
 combined_df_filtered <- filter(combined_df_filtered, !i %in% PC_only)
 combined_df_filtered <- filter(combined_df_filtered, !i %in% VR_only)
 
 
-# calculateing the Z scores which represents the amount of standard deviations (SD) the participants is from the mean
+# We are now calculating the Z-scores for each participant, which will represent the number of standard deviations (SD) that each participant is from the mean. This will allow us to compare participants on a common scale and make more accurate statistical inferences.
   combined_df_filtered <- combined_df_filtered %>%
    mutate(zscore =(combined_df_filtered$corrects - mean(combined_df_filtered$corrects, na.rm =T))/sd(combined_df_filtered$corrects, na.rm =T))
  ID <- combined_df_filtered$i
@@ -757,21 +756,28 @@ combined_df_filtered <- filter(combined_df_filtered, !i %in% VR_only)
  performance <- combined_df_filtered$RT
  data.frame(ID,group,performance,z)
  
- # removing participants that's outling more than 2+-sd 
+# We are now removing any participants that have outliers that exceed more than 2 standard deviations from the mean. This is an important step to ensure that our data set is not skewed by extreme values and that our analysis is based on reliable data.
   ATTENTION_filtered <- filter(ATTENTION_filtered, ID !="20002")
     ATTENTION_filtered <- filter(ATTENTION_filtered, ID !="30035")
     
-# setting the complete data set where outliers and partcipants who did not meet 55% criteria are removed
+# We are now setting the complete data set by removing any outliers and participants who did not meet the 55% criteria. This will ensure that our analysis is based on a clean and reliable data set.
     ATTENTION<- ATTENTION_filtered
+    
+    
+# We have a total of 32 participants, and none of them have outliers that exceed more than 2 standard deviations from the mean. Additionally, all participants meet the 55% criteria.
+  ATTENTION %>%
+    group_by(condition) %>%
+    summarize(distinct_points = n_distinct(ID))
 ```
 
 ```{r distribution and variance tjek}
+# We are plotting the quantile-quantile plots to ensure normal distribution of the data. We decided not to use the Shapiro-Wilk test due to its sensitivity to large sample sizes.
 ggqqplot(ATTENTION, "RT", ggtheme = theme_bw()) +
   facet_grid(stimuli_type ~ condition  ~ stimuli_compatibility)
 
 ggqqplot(ATTENTION, "corrects", ggtheme = theme_bw()) +
   facet_grid(stimuli_type ~ condition  ~ stimuli_compatibility)
-
+# We are using the Levene's test to check for differences in variance between the two groups. This is to ensure that the assumption of homogeneity of variance is met.
   ATTENTION %>%
   group_by(stimuli_compatibility , stimuli_type) %>%
   levene_test(RT ~ condition)
@@ -779,4 +785,115 @@ ggqqplot(ATTENTION, "corrects", ggtheme = theme_bw()) +
   ATTENTION %>%
   group_by(stimuli_compatibility , stimuli_type) %>%
   levene_test(corrects ~ condition)
+```
+
+```{r PC diffrences between stimuli type and compatibility}
+
+# In the first few lines, we are creating a new data frame called "PC" that is a subset of the original "ATTENTION" data frame. We are selecting only the rows where the "condition" column equals "PC".
+PC <- subset(ATTENTION, condition=="PC")
+
+# We are then calculating the means, standard deviations, and sample sizes for RT and corrects for each level of "stimuli_type" using the dplyr function "get_summary_stats". This is done separately for each variable.
+PC %>%
+group_by(stimuli_type) %>%
+get_summary_stats(RT, type = "mean_sd")
+
+PC %>%
+group_by(stimuli_type) %>%
+get_summary_stats(corrects, type = "mean_sd")
+
+# We then repeat the above step, but grouping by "stimuli_compatibility" instead of "stimuli_type".
+PC %>%
+group_by(stimuli_compatibility) %>%
+get_summary_stats(corrects, type = "mean_sd")
+
+PC %>%
+group_by(stimuli_compatibility) %>%
+get_summary_stats(RT, type = "mean_sd")
+
+# Next, we calculate the means, standard deviations, and sample sizes for RT and corrects for each combination of "stimuli_type" and "stimuli_compatibility" using "get_summary_stats".
+PC %>%
+group_by(stimuli_type,stimuli_compatibility) %>%
+get_summary_stats(corrects, type = "mean_sd")
+
+PC %>%
+group_by(stimuli_type,stimuli_compatibility) %>%
+get_summary_stats(RT, type = "mean_sd")
+
+# Finally, we perform paired-t-tests to compare the means of corrects and RT between each level of "stimuli_compatibility" for each level of "stimuli_type". We use the "t_test" function from the "rstatix" package, and adjust the p-values using the Bonferroni correction.
+PC %>%
+group_by(stimuli_type) %>%
+t_test(corrects ~ stimuli_compatibility, p.adjust.method = "bonferroni", paired = T)
+
+PC %>%
+group_by(stimuli_type) %>%
+t_test(RT ~ stimuli_compatibility, p.adjust.method = "bonferroni", paired = T)
+
+# Additionally, we perform paired-t-tests to compare the means of corrects and RT between each level of "stimuli_type" for each level of "stimuli_compatibility". These are also adjusted using the Bonferroni correction.
+PC %>%
+t_test(corrects ~ stimuli_type, p.adjust.method = "bonferroni", paired = T)
+
+PC %>%
+t_test(corrects ~ stimuli_compatibility, p.adjust.method = "bonferroni", paired = T)
+
+PC %>%
+t_test(RT ~ stimuli_type, p.adjust.method = "bonferroni", paired = T)
+
+PC %>%
+t_test(RT ~ stimuli_compatibility, p.adjust.method = "bonferroni", paired = T) 
+
+```
+
+```{r VR diffrences between stimuli type and compatibility}
+
+# In the first few lines, we are creating a new data frame called "VR" that is a subset of the original "ATTENTION" data frame. We are selecting only the rows where the "condition" column equals "VR".
+VR <- subset(ATTENTION, condition=="VR")
+
+# We are then calculating the means, standard deviations, and sample sizes for RT and corrects for each level of "stimuli_type" using the dplyr function "get_summary_stats". This is done separately for each variable.
+VR %>%
+group_by(stimuli_type) %>%
+get_summary_stats(RT, type = "mean_sd")
+
+VR %>%
+group_by(stimuli_type) %>%
+get_summary_stats(corrects, type = "mean_sd")
+
+# We then repeat the above step, but grouping by "stimuli_compatibility" instead of "stimuli_type".
+VR %>%
+group_by(stimuli_compatibility) %>%
+get_summary_stats(corrects, type = "mean_sd")
+
+VR %>%
+group_by(stimuli_compatibility) %>%
+get_summary_stats(RT, type = "mean_sd")
+
+# Next, we calculate the means, standard deviations, and sample sizes for RT and corrects for each combination of "stimuli_type" and "stimuli_compatibility" using "get_summary_stats".
+VR %>%
+group_by(stimuli_type,stimuli_compatibility) %>%
+get_summary_stats(corrects, type = "mean_sd")
+
+VR %>%
+group_by(stimuli_type,stimuli_compatibility) %>%
+get_summary_stats(RT, type = "mean_sd")
+
+# Finally, we perform paired-t-tests to compare the means of corrects and RT between each level of "stimuli_compatibility" for each level of "stimuli_type". We use the "t_test" function from the "rstatix" package, and adjust the p-values using the Bonferroni correction.
+VR %>%
+group_by(stimuli_type) %>%
+t_test(corrects ~ stimuli_compatibility, p.adjust.method = "bonferroni", paired = T)
+
+VR %>%
+group_by(stimuli_type) %>%
+t_test(RT ~ stimuli_compatibility, p.adjust.method = "bonferroni", paired = T)
+
+# Additionally, we perform paired-t-tests to compare the means of corrects and RT between each level of "stimuli_type" for each level of "stimuli_compatibility". These are also adjusted using the Bonferroni correction.
+VR %>%
+t_test(corrects ~ stimuli_type, p.adjust.method = "bonferroni", paired = T)
+
+VR %>%
+t_test(corrects ~ stimuli_compatibility, p.adjust.method = "bonferroni", paired = T)
+
+VR %>%
+t_test(RT ~ stimuli_type, p.adjust.method = "bonferroni", paired = T)
+
+VR %>%
+t_test(RT ~ stimuli_compatibility, p.adjust.method = "bonferroni", paired = T)
 ```

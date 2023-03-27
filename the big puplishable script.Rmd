@@ -897,3 +897,28 @@ t_test(RT ~ stimuli_type, p.adjust.method = "bonferroni", paired = T)
 VR %>%
 t_test(RT ~ stimuli_compatibility, p.adjust.method = "bonferroni", paired = T)
 ```
+
+```{R cost benefit}
+# Create a vector with the desired values
+cb_values <- rep(c("cost", "cost", "cost", "benefit", "benefit", "benefit", "", "", ""), length.out = nrow(data))
+
+# Add the vector as a new column to the data set
+ATTENTION$cost_benefit <- cb_values
+
+# Get unique IDs
+unique_ids <- unique(ATTENTION$ID)
+
+# Iterate over unique IDs
+for (i in unique_ids) {
+  # Subset data for current ID
+  data <- subset(ATTENTION, ID == i)
+  
+  # Do something with the subsetted data
+  print(data)
+  
+  
+}
+
+
+
+```

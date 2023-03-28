@@ -593,7 +593,6 @@ ATTENTION <- rbind(LONG_VR_DATA,LONG_PC_DATA)
 ATTENTION$condition <- rep(c("VR", "PC"), each = 657)
 ```
 
-
 ```{r loop grandperformance, for outlier removal}
 #___________________PC________________________#
 setwd("/Users/rasmus/Desktop/Playore VR data/mellemskridt/Attention_data/PC attention data RAW") 
@@ -898,27 +897,185 @@ VR %>%
 t_test(RT ~ stimuli_compatibility, p.adjust.method = "bonferroni", paired = T)
 ```
 
-```{R cost benefit}
+```{r calculate and add cost and benefit values to the data set}
 # Create a vector with the desired values
 cb_values <- rep(c("cost", "cost", "cost", "benefit", "benefit", "benefit", "", "", ""), length.out = nrow(data))
 
 # Add the vector as a new column to the data set
 ATTENTION$cost_benefit <- cb_values
 
+ATTENTION <- data.frame(ATTENTION, cost_ben_val = rep(NA, nrow(ATTENTION)))
+
 # Get unique IDs
 unique_ids <- unique(ATTENTION$ID)
-
 # Iterate over unique IDs
 for (i in unique_ids) {
-  # Subset data for current ID
+# Subset data for current ID
   data <- subset(ATTENTION, ID == i)
+
+#___________________VR______________#
+# define the cost value, (incongruent - neutral trials) for the same stimuli type (audio)  
+ cost <- data[1,"RT"] - data[7,"RT"]
+# Find the first NA value in the 'cost_ben_val' column
+  first_na <- which(is.na(ATTENTION$cost_ben_val))[1]
+
+# Assign the 'cost' value to the first NA in the 'cost_ben_val' column
+  ATTENTION$cost_ben_val[first_na] <- cost
+
+# define the cost value, (incongruent - neutral trials) for the same stimuli type (visual)  
+    cost <- data[2,"RT"] - data[8,"RT"]
+# Find the first NA value in the 'cost_ben_val' column
+first_na <- which(is.na(ATTENTION$cost_ben_val))[1]
+
+# Assign the 'cost' value to the first NA in the 'cost_ben_val' column
+  ATTENTION$cost_ben_val[first_na] <- cost
+
+# define the cost value, (incongruent - neutral trials) for the same stimuli type (audio.visual)  
+    cost <- data[3,"RT"] - data[9,"RT"]
+# Find the first NA value in the 'cost_ben_val' column
+first_na <- which(is.na(ATTENTION$cost_ben_val))[1]
+# Assign the 'cost' value to the first NA in the 'cost_ben_val' column
+  ATTENTION$cost_ben_val[first_na] <- cost
+
+
+
+# define the benefit value, (neutral trials - congruent ) for the same stimuli type (audio)  
+ benefit <-data[7,"RT"]  - data[4,"RT"]
+# Find the first NA value in the 'cost_ben_val' column
+  first_na <- which(is.na(ATTENTION$cost_ben_val))[1]
+
+# Assign the 'benefit' value to the first NA in the 'cost_ben_val' column
+  ATTENTION$cost_ben_val[first_na] <- benefit
+
+# define the benefit value, ( neutral trials - congreunt ) for the same stimuli type (visual)  
+    benefit <-  data[8,"RT"] - data[5,"RT"] 
+# Find the first NA value in the 'cost_ben_val' column
+first_na <- which(is.na(ATTENTION$cost_ben_val))[1]
+
+# Assign the 'benefit' value to the first NA in the 'cost_ben_val' column
+  ATTENTION$cost_ben_val[first_na] <- benefit
+
+# define the benefit value, (neutral trials - congreunt) for the same stimuli type (audio.visual)  
+    benefit <- data[9,"RT"] - data[6,"RT"] 
+# Find the first NA value in the 'cost_ben_val' column
+first_na <- which(is.na(ATTENTION$cost_ben_val))[1]
+# Assign the 'benefit' value to the first NA in the 'cost_ben_val' column
+  ATTENTION$cost_ben_val[first_na] <- benefit
+
   
-  # Do something with the subsetted data
-  print(data)
+# neutral 
+# sett the next three equal to NA due to neutral - neutral is 0   neutral <- "NA"
+  neutral <- "NEUTRAL"
+  first_na <- which(is.na(ATTENTION$cost_ben_val))[1]
+
+# Assign the 'benefit' value to the first NA in the 'cost_ben_val' column
+  ATTENTION$cost_ben_val[first_na] <- neutral
+
+# neutral 
+# sett the next three equal to NA due to neutral - neutral is 0   neutral <- "NA"
+  neutral <- "NEUTRAL"
+  first_na <- which(is.na(ATTENTION$cost_ben_val))[1]
+
+# Assign the 'benefit' value to the first NA in the 'cost_ben_val' column
+  ATTENTION$cost_ben_val[first_na] <- neutral
+  
+# neutral 
+# sett the next three equal to NA due to neutral - neutral is 0   neutral <- "NA"
+  neutral <- "NEUTRAL"
+  first_na <- which(is.na(ATTENTION$cost_ben_val))[1]
+
+# Assign the 'benefit' value to the first NA in the 'cost_ben_val' column
+  ATTENTION$cost_ben_val[first_na] <- neutral
   
   
+  
+  #___________________PC______________#
+# define the cost value, (incongruent - neutral trials) for the same stimuli type (audio)  
+ cost <- data[10,"RT"] - data[16,"RT"]
+# Find the first NA value in the 'cost_ben_val' column
+  first_na <- which(is.na(ATTENTION$cost_ben_val))[1]
+
+# Assign the 'cost' value to the first NA in the 'cost_ben_val' column
+  ATTENTION$cost_ben_val[first_na] <- cost
+
+# define the cost value, (incongruent - neutral trials) for the same stimuli type (visual)  
+    cost <- data[11,"RT"] - data[17,"RT"]
+# Find the first NA value in the 'cost_ben_val' column
+first_na <- which(is.na(ATTENTION$cost_ben_val))[1]
+
+# Assign the 'cost' value to the first NA in the 'cost_ben_val' column
+  ATTENTION$cost_ben_val[first_na] <- cost
+
+# define the cost value, (incongruent - neutral trials) for the same stimuli type (audio.visual)  
+    cost <- data[12,"RT"] - data[18,"RT"]
+# Find the first NA value in the 'cost_ben_val' column
+first_na <- which(is.na(ATTENTION$cost_ben_val))[1]
+# Assign the 'cost' value to the first NA in the 'cost_ben_val' column
+  ATTENTION$cost_ben_val[first_na] <- cost
+  
+  
+  # define the benefit value, (neutral trials - congruent ) for the same stimuli type (audio)  
+ benefit <-data[16,"RT"]  - data[13,"RT"]
+# Find the first NA value in the 'cost_ben_val' column
+  first_na <- which(is.na(ATTENTION$cost_ben_val))[1]
+
+# Assign the 'benefit' value to the first NA in the 'cost_ben_val' column
+  ATTENTION$cost_ben_val[first_na] <- benefit
+
+# define the benefit value, ( neutral trials - congreunt ) for the same stimuli type (visual)  
+    benefit <-  data[17,"RT"] - data[14,"RT"] 
+# Find the first NA value in the 'cost_ben_val' column
+first_na <- which(is.na(ATTENTION$cost_ben_val))[1]
+
+# Assign the 'benefit' value to the first NA in the 'cost_ben_val' column
+  ATTENTION$cost_ben_val[first_na] <- benefit
+
+# define the benefit value, (neutral trials - congreunt) for the same stimuli type (audio.visual)  
+    benefit <- data[18,"RT"] - data[15,"RT"] 
+# Find the first NA value in the 'cost_ben_val' column
+first_na <- which(is.na(ATTENTION$cost_ben_val))[1]
+# Assign the 'benefit' value to the first NA in the 'cost_ben_val' column
+  ATTENTION$cost_ben_val[first_na] <- benefit
+  
+# neutral 
+# sett the next three equal to NA due to neutral - neutral is 0   neutral <- "NA"
+  neutral <- "NEUTRAL"
+  first_na <- which(is.na(ATTENTION$cost_ben_val))[1]
+
+# Assign the 'benefit' value to the first NA in the 'cost_ben_val' column
+  ATTENTION$cost_ben_val[first_na] <- neutral
+
+# neutral 
+# sett the next three equal to NA due to neutral - neutral is 0   neutral <- "NA"
+  neutral <- "NEUTRAL"
+  first_na <- which(is.na(ATTENTION$cost_ben_val))[1]
+
+# Assign the 'benefit' value to the first NA in the 'cost_ben_val' column
+  ATTENTION$cost_ben_val[first_na] <- neutral
+  
+# neutral 
+# sett the next three equal to NA due to neutral - neutral is 0   neutral <- "NA"
+  neutral <- "NEUTRAL"
+  first_na <- which(is.na(ATTENTION$cost_ben_val))[1]
+
+# Assign the 'benefit' value to the first NA in the 'cost_ben_val' column
+  ATTENTION$cost_ben_val[first_na] <- neutral
+
 }
 
+# Convert the 'cost_ben_val' column of the 'ATTENTION' dataframe to numeric data type
+ATTENTION$cost_ben_val <- as.numeric(ATTENTION$cost_ben_val)
+
+# Group the 'ATTENTION' dataframe by 'condition', 'stimuli_type', and 'cost_benefit' columns and 
+# calculate summary statistics (mean and standard deviation) for the 'cost benefit values' column
+ATTENTION %>%  
+  group_by(condition,stimuli_type , cost_benefit) %>% 
+  get_summary_stats(cost_ben_val, type = "mean_sd")
 
 
+```
+
+```{r cost benefit statistics}
+
+,
 ```

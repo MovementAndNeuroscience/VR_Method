@@ -16,10 +16,9 @@ library(tidyverse)
 library(ggpubr) 
 library(rstatix)
 library(rmarkdown)
-library(emmeans)
-library(lmerTest) 
 library(multcomp)
 library(dplyr)
+library(ggstance)
 ```
 
 ```{r Import loop and data formatting}
@@ -280,6 +279,7 @@ for (i in list)
 }
 # we create another temp file for for PC aswell
 PC_not_done <- DF 
+
 ```
 
 ```{r make it long tydy formate.}
@@ -761,8 +761,10 @@ combined_df_filtered <- filter(combined_df_filtered, !i %in% VR_only)
     
 # We are now setting the complete data set by removing any outliers and participants who did not meet the 55% criteria. This will ensure that our analysis is based on a clean and reliable data set.
     ATTENTION<- ATTENTION_filtered
-    
-    
+  # Convert seconds to milliseconds
+ATTENTION$RT <- ATTENTION$RT * 1000
+# remove all objects except for mydata and mylist
+rm(list = setdiff(ls(), c("ATTENTION")))
 # We have a total of 32 participants, and none of them have outliers that exceed more than 2 standard deviations from the mean. Additionally, all participants meet the 55% criteria.
   ATTENTION %>%
     group_by(condition) %>%
@@ -843,7 +845,6 @@ t_test(RT ~ stimuli_compatibility, p.adjust.method = "bonferroni", paired = T)
 ```
 
 ```{r VR diffrences between stimuli type and compatibility}
-
 # In the first few lines, we are creating a new data frame called "VR" that is a subset of the original "ATTENTION" data frame. We are selecting only the rows where the "condition" column equals "VR".
 VR <- subset(ATTENTION, condition=="VR")
 
@@ -1058,7 +1059,7 @@ first_na <- which(is.na(ATTENTION$cost_ben_val))[1]
   neutral <- "NEUTRAL"
   first_na <- which(is.na(ATTENTION$cost_ben_val))[1]
 
-# Assign the 'benefit' value to the first NA in the 'cost_ben_val' column
+# Assign the 'benefit' value to the first NA in the 'cost_ben_val' column 
   ATTENTION$cost_ben_val[first_na] <- neutral
 
 }
@@ -1072,10 +1073,116 @@ ATTENTION %>%
   group_by(condition,stimuli_type , cost_benefit) %>% 
   get_summary_stats(cost_ben_val, type = "mean_sd")
 
+# remove all objects except for mydata and mylist
+rm(list = setdiff(ls(), c("ATTENTION")))
 
 ```
 
 ```{r cost benefit statistics}
+# group the data by both "cost_benefit" and "stimuli_type" and perform a paired t-test on the "cost benefit value"
+# Next, we compare the condition and adjust the p-values using the Bonferroni correction.
+# this was done to find diffrences between the conditions. based on the stimuli type.
+ATTENTION %>%
+filter(!is.na(cost_ben_val)) %>%
+group_by(cost_benefit,stimuli_type) %>%
+t_test(cost_ben_val ~ condition , p.adjust.method = "bonferroni", paired = T)
 
-,
+# group the data by both condition and cost benefit. and perform a paried t-test, on the cost benefit value.
+# corrected with bonferoni. 
+# this was done to chek for in condition diffrences between the stimuly type
+ATTENTION %>%
+filter(!is.na(cost_ben_val)) %>%
+group_by(cost_benefit,condition) %>%
+t_test(cost_ben_val ~ stimuli_type , p.adjust.method = "bonferroni", paired = T)
+
+# Additionally, we calculate the means and standard deviations of cost benefit results for each combination of "cost_benefit" and "stimuli_type".
+  ATTENTION %>%
+  group_by(cost_benefit, stimuli_type, condition) %>%
+  get_summary_stats(cost_ben_val, type = "mean_sd")
+
+
+
+```
+
+```{r diffrences between stimuli type and compatibility and conditions}
+# 
+ATTENTION %>%
+  group_by(stimuli_type,condition) %>%
+  get_summary_stats(RT, type = "mean_sd")
+
+ATTENTION %>%
+  group_by(stimuli_compatibility,condition) %>%
+  get_summary_stats(corrects, type = "mean_sd")
+
+ATTENTION %>%
+  group_by(stimuli_type,condition) %>%
+  get_summary_stats(corrects, type = "mean_sd")
+
+ATTENTION %>%
+  group_by(stimuli_compatibility,condition) %>%
+  get_summary_stats(RT, type = "mean_sd")
+
+ATTENTION %>%
+  group_by(stimuli_type,stimuli_compatibility,condition) %>%
+  get_summary_stats(corrects, type = "mean_sd")
+
+ATTENTION %>%
+  group_by(stimuli_type,stimuli_compatibility,condition) %>%
+  get_summary_stats(RT, type = "mean_sd")
+## 
+ 
+ 
+ 
+## Stimuli type X compatibility differences
+ATTENTION %>%
+  group_by(stimuli_type,stimuli_compatibility) %>%
+  t_test(corrects ~ condition , p.adjust.method = "bonferroni", paired = T)
+ 
+ATTENTION %>%
+  group_by(stimuli_type,stimuli_compatibility) %>%
+  t_test(RT ~ condition , p.adjust.method = "bonferroni", paired = T)
+## either Stimuli type or compatibility differences 
+ATTENTION %>%
+  group_by(stimuli_type) %>%
+  t_test(corrects ~ condition, p.adjust.method = "bonferroni", paired = T)
+  
+ATTENTION %>%
+  group_by(stimuli_compatibility) %>%
+  t_test(corrects ~ condition, p.adjust.method = "bonferroni", paired = T)
+  
+ATTENTION %>%
+  group_by(stimuli_type) %>%
+  t_test(RT ~condition , p.adjust.method = "bonferroni", paired = T)
+  
+ATTENTION %>%
+  group_by(stimuli_compatibility ) %>%
+  t_test(RT ~ condition, p.adjust.method = "bonferroni", paired = T)
+#
+```
+
+```{r plotting}
+# summary_tavble represent the means and sd for the conditions and stimuli types, makes it easier to plot similar to matuz
+summary_table <- ATTENTION %>%
+  group_by(cost_benefit, stimuli_type, condition) %>%
+  get_summary_stats(cost_ben_val, type = "mean_sd")
+# plotting the cost and benefit diffrences.
+ggplot(summary_table, aes(x =stimuli_type , y = mean, fill =cost_benefit )) +
+  geom_bar(stat = "identity", position = "dodge") +
+  theme_bw() +
+  facet_wrap(~ condition) +
+  labs(title = "Mean Cost-Benefit Value grouped by Condition and Stimuli Type",
+       x = "Stimuli types",
+       y = "Mean Cost-Benefit Value",
+       fill = "Condition") 
+
+# plotting all the permutations for each condition. 
+  ggplot(ATTENTION, aes(x = stimuli_type, y = RT, fill = stimuli_compatibility)) +
+  geom_violin(trim = FALSE, alpha = 0.5, position = "dodge") +
+  geom_jitter(alpha = 0.9, size = 1, shape = 21, width = 1) +
+  facet_wrap(~condition) +
+  labs(x = "Stimuli Type", y = "Search Time", fill = "Stimuli Compatibility", color = "Stimuli Compatibility")+
+  theme_bw()+ 
+  scale_fill_manual(values = c("#F8766D", "#00BFC4", "black")) +
+  scale_color_manual(values = c("#F8766D", "#00BFC4", "black"))
+  
 ```

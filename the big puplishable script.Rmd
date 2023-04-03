@@ -112,6 +112,7 @@ for (i in 1:length(myList))
   if (is_empty(incongruent_and_audio1$ReactionTime.Block1) == TRUE) { 
     DF$incongruent_and_audio_RT[i] <- NA # these should be NAs rather than 0, because RT of 0 is numerically misleading (i.e. it seems as though people responded in 0 seconds - this skews means etc later on)
     DF$incongruent_and_audio_RT_sd[i] <- NA
+    DF$incongruent_and_audio_RT_md[i] <- NA
   } else{
     DF$incongruent_and_audio_RT[i] <- mean(incongruent_and_audio1$ReactionTime.Block1, na.rm = TRUE) #here na.rm = TRUE is important because otherwise we will get an NA for the participant
     DF$incongruent_and_audio_RT_sd[i] <- sd(incongruent_and_audio1$ReactionTime.Block1, na.rm = TRUE)
@@ -137,6 +138,7 @@ for (i in 1:length(myList))
   if (is_empty(incongruent_and_visual1$ReactionTime.Block1) == TRUE) {
     DF$incongruent_and_visual_RT[i] <- NA
     DF$incongruent_and_visual_RT_sd[i] <- NA
+    DF$incongruent_and_visual_RT_md[i] <- NA
   } else{
     DF$incongruent_and_visual_RT[i] <- mean(incongruent_and_visual1$ReactionTime.Block1, na.rm = TRUE)
     DF$incongruent_and_visual_RT_sd[i] <- sd(incongruent_and_visual1$ReactionTime.Block1, na.rm = TRUE)
@@ -162,6 +164,7 @@ for (i in 1:length(myList))
   if (is_empty(incongruent_and_audio.visual1$ReactionTime.Block1) == TRUE) {
     DF$incongruent_and_audio.visual_RT[i] <- NA
     DF$incongruent_and_audio.visual_RT_sd[i] <- NA
+    DF$incongruent_and_audio.visual_RT_md[i] <- NA
   } else{
     DF$incongruent_and_audio.visual_RT[i] <-
       mean(incongruent_and_audio.visual1$ReactionTime.Block1, na.rm = TRUE)
@@ -191,6 +194,7 @@ for (i in 1:length(myList))
   if (is_empty(congruent_and_audio1$ReactionTime.Block1) == TRUE) {
     DF$congruent_and_audio_RT[i] <- NA
     DF$congruent_and_audio_RT_sd[i] <- NA
+    DF$congruent_and_audio_RT_md[i] <- NA
   } else{
     DF$congruent_and_audio_RT[i] <- mean(congruent_and_audio1$ReactionTime.Block1, na.rm = TRUE)
     DF$congruent_and_audio_RT_sd[i] <- sd(congruent_and_audio1$ReactionTime.Block1, na.rm = TRUE)
@@ -216,6 +220,7 @@ for (i in 1:length(myList))
   if (is_empty(congruent_and_visual1$ReactionTime.Block1) == TRUE) {
     DF$congruent_and_visual_RT[i] <- NA
     DF$congruent_and_visual_RT_sd[i] <- NA
+    DF$congruent_and_visual_RT_md[i] <- NA
   } else{
     DF$congruent_and_visual_RT[i] <- mean(congruent_and_visual1$ReactionTime.Block1, na.rm = TRUE)
     DF$congruent_and_visual_RT_sd[i] <- sd(congruent_and_visual1$ReactionTime.Block1, na.rm = TRUE)
@@ -241,6 +246,7 @@ for (i in 1:length(myList))
   if (is_empty(congruent_and_audio.visual1$ReactionTime.Block1) == TRUE) {
     DF$congruent_and_audio.visual_RT[i] <- NA
     DF$congruent_and_audio.visual_RT_sd[i] <- NA
+    DF$congruent_and_audio.visual_RT_md[i] <- NA
   } else{
     DF$congruent_and_audio.visual_RT[i] <- mean(congruent_and_audio.visual1$ReactionTime.Block1, na.rm = TRUE)
     DF$congruent_and_audio.visual_RT_sd[i] <- sd(congruent_and_audio.visual1$ReactionTime.Block1, na.rm = TRUE)
@@ -267,6 +273,7 @@ for (i in 1:length(myList))
   if (is_empty(neutral_and_audio1$ReactionTime.Block1) == TRUE) {
     DF$neutral_and_audio_RT[i] <- NA
     DF$neutral_and_audio_RT_sd[i] <- NA
+    DF$neutral_and_audio_RT_md[i] <- NA
   } else{
     DF$neutral_and_audio_RT[i] <- mean(neutral_and_audio1$ReactionTime.Block1, na.rm = TRUE)
     DF$neutral_and_audio_RT_sd[i] <- sd(neutral_and_audio1$ReactionTime.Block1, na.rm = TRUE)
@@ -292,6 +299,7 @@ for (i in 1:length(myList))
   if (is_empty(neutral_and_visual1$ReactionTime.Block1) == TRUE) {
     DF$neutral_and_visual_RT[i] <- NA
     DF$neutral_and_visual_RT_sd[i] <- NA
+    DF$neutral_and_visual_RT_md[i] <- NA
   } else{
     DF$neutral_and_visual_RT[i] <- mean(neutral_and_visual1$ReactionTime.Block1, na.rm = TRUE)
     DF$neutral_and_visual_RT_sd[i] <- sd(neutral_and_visual1$ReactionTime.Block1, na.rm = TRUE)
@@ -317,6 +325,7 @@ for (i in 1:length(myList))
   if (is_empty(neutral_and_audio.visual1$ReactionTime.Block1) == TRUE) {
     DF$neutral_and_audio.visual_RT[i] <- NA
     DF$neutral_and_audio.visual_RT_sd[i] <- NA
+    DF$neutral_and_audio.visual_RT_md[i] <- NA
   } else{
     DF$neutral_and_audio.visual_RT[i] <- mean(neutral_and_audio.visual1$ReactionTime.Block1, na.rm = TRUE)
     DF$neutral_and_audio.visual_RT_sd[i] <- sd(neutral_and_audio.visual1$ReactionTime.Block1, na.rm = TRUE)
@@ -388,6 +397,7 @@ for (i in 1:length(myList))
   if (is_empty(incongruent_and_audio1$ReactionTime.Block1) == TRUE) { 
     DF$incongruent_and_audio_RT[i] <- NA # these should be NAs rather than 0, because RT of 0 is numerically misleading (i.e. it seems as though people responded in 0 seconds - this skews means etc later on)
     DF$incongruent_and_audio_RT_sd[i] <- NA
+    DF$incongruent_and_audio_RT_md[i] <- NA
   } else{
     DF$incongruent_and_audio_RT[i] <- mean(incongruent_and_audio1$ReactionTime.Block1, na.rm = TRUE)
     DF$incongruent_and_audio_RT_sd[i] <- sd(incongruent_and_audio1$ReactionTime.Block1, na.rm = TRUE)
@@ -413,6 +423,7 @@ for (i in 1:length(myList))
   if (is_empty(incongruent_and_visual1$ReactionTime.Block1) == TRUE) {
     DF$incongruent_and_visual_RT[i] <- NA
     DF$incongruent_and_visual_RT_sd[i] <- NA
+    DF$incongruent_and_visual_RT_md[i] <- NA
   } else{
     DF$incongruent_and_visual_RT[i] <- mean(incongruent_and_visual1$ReactionTime.Block1, na.rm = TRUE)
     DF$incongruent_and_visual_RT_sd[i] <- sd(incongruent_and_visual1$ReactionTime.Block1, na.rm = TRUE)
@@ -438,6 +449,7 @@ for (i in 1:length(myList))
   if (is_empty(incongruent_and_audio.visual1$ReactionTime.Block1) == TRUE) {
     DF$incongruent_and_audio.visual_RT[i] <- NA
     DF$incongruent_and_audio.visual_RT_sd[i] <- NA
+    DF$incongruent_and_audio.visual_RT_md[i] <- NA
   } else{
     DF$incongruent_and_audio.visual_RT[i] <-
       mean(incongruent_and_audio.visual1$ReactionTime.Block1)
@@ -467,6 +479,7 @@ for (i in 1:length(myList))
   if (is_empty(congruent_and_audio1$ReactionTime.Block1) == TRUE) {
     DF$congruent_and_audio_RT[i] <- NA
     DF$congruent_and_audio_RT_sd[i] <- NA
+    DF$congruent_and_audio_RT_md[i] <- NA
   } else{
     DF$congruent_and_audio_RT[i] <- mean(congruent_and_audio1$ReactionTime.Block1, na.rm = TRUE)
     DF$congruent_and_audio_RT_sd[i] <- sd(congruent_and_audio1$ReactionTime.Block1, na.rm = TRUE)
@@ -493,6 +506,7 @@ for (i in 1:length(myList))
   if (is_empty(congruent_and_visual1$ReactionTime.Block1) == TRUE) {
     DF$congruent_and_visual_RT[i] <- NA
     DF$congruent_and_visual_RT_sd[i] <- NA
+    DF$congruent_and_visual_RT_md[i] <- NA
   } else{
     DF$congruent_and_visual_RT[i] <- mean(congruent_and_visual1$ReactionTime.Block1, na.rm = TRUE)
     DF$congruent_and_visual_RT_sd[i] <- sd(congruent_and_visual1$ReactionTime.Block1, na.rm = TRUE)
@@ -518,6 +532,7 @@ for (i in 1:length(myList))
   if (is_empty(congruent_and_audio.visual1$ReactionTime.Block1) == TRUE) {
     DF$congruent_and_audio.visual_RT[i] <- NA
     DF$congruent_and_audio.visual_RT_sd[i] <- NA
+    DF$congruent_and_audio.visual_RT_md[i] <- NA
   } else{
     DF$congruent_and_audio.visual_RT[i] <- mean(congruent_and_audio.visual1$ReactionTime.Block1, na.rm = TRUE)
     DF$congruent_and_audio.visual_RT_sd[i] <- sd(congruent_and_audio.visual1$ReactionTime.Block1, na.rm = TRUE)
@@ -544,6 +559,7 @@ for (i in 1:length(myList))
   if (is_empty(neutral_and_audio1$ReactionTime.Block1) == TRUE) {
     DF$neutral_and_audio_RT[i] <- NA
     DF$neutral_and_audio_RT_sd[i] <- NA
+    DF$neutral_and_audio_RT_md[i] <- NA
   } else{
     DF$neutral_and_audio_RT[i] <- mean(neutral_and_audio1$ReactionTime.Block1, na.rm = TRUE)
     DF$neutral_and_audio_RT_sd[i] <- sd(neutral_and_audio1$ReactionTime.Block1, na.rm = TRUE)
@@ -569,6 +585,7 @@ for (i in 1:length(myList))
   if (is_empty(neutral_and_visual1$ReactionTime.Block1) == TRUE) {
     DF$neutral_and_visual_RT[i] <- NA
     DF$neutral_and_visual_RT_sd[i] <- NA
+    DF$neutral_and_visual_RT_md[i] <- NA
   } else{
     DF$neutral_and_visual_RT[i] <- mean(neutral_and_visual1$ReactionTime.Block1, na.rm = TRUE)
     DF$neutral_and_visual_RT_sd[i] <- sd(neutral_and_visual1$ReactionTime.Block1, na.rm = TRUE)
@@ -594,6 +611,7 @@ for (i in 1:length(myList))
   if (is_empty(neutral_and_audio.visual1$ReactionTime.Block1) == TRUE) {
     DF$neutral_and_audio.visual_RT[i] <- NA
     DF$neutral_and_audio.visual_RT_sd[i] <- NA
+    DF$neutral_and_audio.visual_RT_md[i] <- NA
   } else{
     DF$neutral_and_audio.visual_RT[i] <- mean(neutral_and_audio.visual1$ReactionTime.Block1, na.rm = TRUE)
     DF$neutral_and_audio.visual_RT_sd[i] <- sd(neutral_and_audio.visual1$ReactionTime.Block1, na.rm = TRUE)

@@ -19,7 +19,9 @@ library(rmarkdown)
 library(multcomp)
 library(dplyr)
 library(ggstance)
-
+library(emmeans)
+library(car)
+library(broom)
 
 #set R language to English
 Sys.setenv(lang = "en_UK")
@@ -63,10 +65,10 @@ convert_number <- function(x) {
 
 
 # Set working directory
-setwd("~/6. VR Study/VR_Method/RAW VR")
+setwd("/Users/rasmus/Desktop/VR_Method")
 
 # Look in the directory and search for CSV files.
-myList <- list.dirs(path = "~/6. VR Study/VR_Method/RAW VR")[-1] #not quite good to name a list "list" because it might get confusing in R at some point, so I changed it to myList, [-1] because the first position listed is the main folder which is not needed here 
+myList <- list.dirs(path = "/Users/rasmus/Desktop/VR_Method/RAW VR")[-1] #not quite good to name a list "list" because it might get confusing in R at some point, so I changed it to myList, [-1] because the first position listed is the main folder which is not needed here 
 
 
 #Create and empty data frame to extract the data
@@ -361,7 +363,7 @@ rm(congruent_and_audio.visual1, congruent_and_audio1, congruent_and_visual1, inc
 # In the PC folder, there is one .csv file, semicolon separated, for each participant. They will be imported into two separate data frames.
 
 # Set the working directory to the PC folder
-setwd("~/6. VR Study/VR_Method/RAW PC/PC attention data RAW-kopi")
+setwd("/Users/rasmus/Desktop/VR_Method/RAW PC")
 
 # Look in the directory and search for CSV files.
 myList <- list.files(pattern = ".csv", recursive = TRUE) #not quite good to name a list "list" becaude it might get confusinng in R at some point, so I changed it to myList 
@@ -632,6 +634,11 @@ PC_not_done <- DF
 ```
 
 ```{r long format for PC}
+# to keep track of our 73 participants, we will assign them a ID number per participant.
+ID <- c(10103, 10106, 10107, 10108, 10110, 10113, 10114, 10116, 10117, 10123, 10124, 10126, 10127, 10128, 10129, 10131, 10133, 10134, 10136, 10137, 10138, 10139, 10153, 10154, 10156, 10157, 10158, 20002, 20003, 20005, 20006, 20008, 20009, 20020, 20021, 20022, 30002, 30003, 30004, 30006, 30009, 30010, 30012, 30013, 30019, 30020, 30022, 30023, 30024, 30025, 30026, 30027, 30028, 30030, 30032, 30033, 30034, 30035, 30036, 30040, 30042, 30044, 30046, 30048, 30049, 30051, 30052, 30053, 30054, 30055, 30058, 30060, 30061)
+
+PC_not_done$id <- ID
+VR_not_done$id <- ID
 
 #_______________PC___________________________#
 # create a empty data frame that's empty ready to fill it up
@@ -1098,6 +1105,21 @@ Additionally, we have to remove all participants with overall accuracy below 55%
 #We have to keep a consistent number of trials between the different types and conditions  so let's keep it as minimum of 5 trials per participants
 ATTENTION_trial_filt <- ATTENTION_base %>% filter(corrects >4)
 
+
+# summarize the amount of children who did not get above 5 in a permutation. grouped by condition.
+unique_ID <- unique(ATTENTION_base$ID)
+ATTENTION_base %>%
+  filter(ID %in% unique_ID) %>%
+  group_by(condition) %>%
+  summarize(num_ID_4_or_lower = n_distinct(ID[corrects <= 4]))
+# figure out how many share ID number, so i can calculate the amount of children who did not make criteria in each con.
+ATTENTION_base %>%
+  filter(corrects <= 4) %>%
+  group_by(ID) %>%
+  filter("PC" %in% condition & "VR" %in% condition) %>%
+  summarize(num_rows = n()) %>%
+  summarize(num_shared_IDs = n())
+
 #Now let's check how many participants have all trial types retained in both PC and VR after we filtered out the low numbers of correct trials 
 #R will produce a vector with the number of trials types retained per person. 
 
@@ -1157,222 +1179,14 @@ to_exclude <- unique(c(unique_ID_keep[PC < 55], unique_ID_keep[VR < 55]))
 
 
 ATTENTION <- filter(ATTENTION_ptts_filt, !(ID %in% (to_exclude)))
-```
 
+# overview of the amount of participant left 
+length(unique(ATTENTION$ID))
 
-
-
-
-```{r loop grandperformance, for outlier removal}
-#___________________PC________________________#
-setwd(
-  "/Users/rasmus/Desktop/Playore VR data/mellemskridt/Attention_data/PC attention data RAW"
-)
-# Instruct R to look in the directory and search for CSV files.
-list <- list.files(pattern = ".csv", recursive = TRUE)
-# "i" represents the current participant and is set to loop through all files in the directory.
-# It is set to loop from 1 to the length of the list of files in our directory.
-i <- 1:length(list)
-
-all_trials = 144
-
-# creating a empty data frame, that can hold the grand performance data.
-PC_df_grandperformance <- data_frame(
-  id = character(),
-  corrects = numeric(),
-  RT = numeric(),
-  acc = numeric(),
-  no_answerd = numeric(),
-  total_answerd = numeric(),
-  stringsAsFactors = FALSE
-)
-
-# settup import and extract loop
-for (i in list)
-{
-  myData <- read.csv2(i)
-  
-  corrects_answers_subset <-
-    subset(myData, myData$Answer.Codes.Block1 == "1")
-  # we need the converte_number funktion to
-  RT <-
-    mean(convert_number(corrects_answers_subset$ReactionTime.Block1))
-  corrects <- sum(corrects_answers_subset$Answer.Codes.Block1 == "1")
-  
-  # Here it is importen not to use the correct answers subset. because we need their no answers
-  no_answerd <- sum(myData$Answer.Codes.Block1 == "0")
-  # calculate participants total answered trials, to get the participants accuracy on their answered trials.
-  total_answerd <- all_trials - no_answerd
-  # accuracy on total asnwerd trials.
-  acc <- (corrects / total_answerd) * 100
-  # create af dataframe
-  PC_df_grandperformance <-
-    rbind(
-      PC_df_grandperformance,
-      data.frame(i, corrects, RT, acc, no_answerd, total_answerd)
-    )
-}
-# replace the file names with ID the participants ID numbers
-ID <- c(10103, 10106, 10107, 10108, 10110, 10113, 10114, 10116, 10117, 10123, 10124, 10126, 10127, 10128, 10129, 10131, 10133, 10134, 10136, 10137, 10138, 10139, 10153, 10154, 10156, 10157, 10158, 20002, 20003, 20005, 20006, 20008, 20009, 20020, 20021, 20022, 30002, 30003, 30004, 30006, 30009, 30010, 30012, 30013, 30019, 30020, 30022, 30023, 30024, 30025, 30026, 30027, 30028, 30030, 30032, 30033, 30034, 30035, 30036, 30040, 30042, 30044, 30046, 30048, 30049, 30051, 30052, 30053, 30054, 30055, 30058, 30060, 30061)
-PC_df_grandperformance <- mutate(PC_df_grandperformance, i = ID)
-# subset the data based on Performance values below 55%
-sub_data <-
-  PC_df_grandperformance[PC_df_grandperformance$acc <= 55, ]
-# extract the ID column values and store them in a list
-PC_bellow_55Percentage <- sub_data$i
-
-#___________________VR________________________#
-setwd(
-  "/Users/rasmus/Desktop/Playore VR data/mellemskridt/Attention_data/VR attention data RAW"
-)
-# Instruct R to look in the directory and search for CSV files.
-list <- list.files(pattern = ".csv", recursive = TRUE)
-# "i" represents the current participant and is set to loop through all files in the directory.
-# It is set to loop from 1 to the length of the list of files in our directory.
-i <- 1:length(list)
-
-all_trials = 144
-
-# creating a empty data frame, that can hold the grand performance data.
-VR_df_grandperformance <- data_frame(
-  id = character(),
-  corrects = numeric(),
-  RT = numeric(),
-  acc = numeric(),
-  no_answerd = numeric(),
-  total_answerd = numeric(),
-  stringsAsFactors = FALSE
-)
-
-# settup import and extract loop
-for (i in list)
-{
-  myData <- read.csv2(i)
-  
-  corrects_answers_subset <-
-    subset(myData, myData$Answer.Codes.Block1 == "1")
-  # we need the converte_number funktion to
-  RT <-
-    mean(convert_number(corrects_answers_subset$ReactionTime.Block1))
-  corrects <- sum(corrects_answers_subset$Answer.Codes.Block1 == "1")
-  
-  # Here it is importen not to use the correct answers subset. because we need their no answers
-  no_answerd <- sum(myData$Answer.Codes.Block1 == "0")
-  # calculate participants total answered trials, to get the participants accuracy on their answered trials.
-  total_answerd <- all_trials - no_answerd
-  # accuracy on total asnwerd trials.
-  acc <- (corrects / total_answerd) * 100
-  # create af dataframe
-  VR_df_grandperformance <-
-    rbind(
-      VR_df_grandperformance,
-      data.frame(i, corrects, RT, acc, no_answerd, total_answerd)
-    )
-}
-# replace the file names with ID the participants ID numbers
-ID <- c(10103, 10106, 10107, 10108, 10110, 10113, 10114, 10116, 10117, 10123, 10124, 10126, 10127, 10128, 10129, 10131, 10133, 10134, 10136, 10137, 10138, 10139, 10153, 10154, 10156, 10157, 10158, 20002, 20003, 20005, 20006, 20008, 20009, 20020, 20021, 20022, 30002, 30003, 30004, 30006, 30009, 30010, 30012, 30013, 30019, 30020, 30022, 30023, 30024, 30025, 30026, 30027, 30028, 30030, 30032, 30033, 30034, 30035, 30036, 30040, 30042, 30044, 30046, 30048, 30049, 30051, 30052, 30053, 30054, 30055, 30058, 30060, 30061)
-VR_df_grandperformance <- mutate(VR_df_grandperformance, i = ID)
-# subset the data based on Performance values below 55%
-sub_data <-
-  VR_df_grandperformance[VR_df_grandperformance$acc <= 55, ]
-# extract the ID column values and store them in a list
-VR_bellow_55Percentage <- sub_data$i
 
 
 ```
 
-```{r outlier removal}
-# Now that we have to lists with the participants who did not perform above chance lvl, we can extract them from the complete data set.
-PC_bellow_55Percentage
-VR_bellow_55Percentage
-
-# find the common IDs in both lists
-common_IDs <-
-  intersect(PC_bellow_55Percentage, VR_bellow_55Percentage)
-# find the IDs that are only in the PC_bellow_55Percentage list
-PC_only <- setdiff(PC_bellow_55Percentage, VR_bellow_55Percentage)
-# find the IDs that are only in the VR_bellow_55Percentage list
-VR_only <- setdiff(VR_bellow_55Percentage, PC_bellow_55Percentage)
-# print the results
-cat("The number of identical IDs in both lists is:", length(common_IDs))
-cat("The common IDs are:", common_IDs)
-cat("The number of IDs only in the PC_bellow_55Percentage list is:",
-    length(PC_only))
-cat("The IDs only in the PC_bellow_55Percentage list are:", PC_only)
-cat("The number of IDs only in the VR_bellow_55Percentage list is:",
-    length(VR_only))
-cat("The IDs only in the VR_bellow_55Percentage list are:", VR_only)
-
-# 39 children needs to be removed from the complete data set.
-cihldren_who_did_not_meet_55percentage = length(common_IDs) + length(PC_only) +
-  length(VR_only)
-
-# Great! We have obtained quality results from our analysis. As a next step, we can calculate the percentage of children that did not meet the 55% criteria in each condition. This will help us understand the impact of the experimental conditions on participant performance and identify any potential limitations of the study.
-length(PC_only) / cihldren_who_did_not_meet_55percentage * 100 # percentage of children who did not perform over 55% in the PC condition
-length(VR_only) / cihldren_who_did_not_meet_55percentage * 100 # percentage of children who did not perform over 55% in the VR condition
-length(common_IDs) / cihldren_who_did_not_meet_55percentage * 100 # percentage of children who did not perform over 55% in both condition
-
-# removal of children bellow 55% accuracy.
-ATTENTION_filtered <- ATTENTION
-ATTENTION_filtered <-
-  filter(ATTENTION_filtered,!ID %in% common_IDs)
-ATTENTION_filtered <- filter(ATTENTION_filtered,!ID %in% PC_only)
-ATTENTION_filtered <- filter(ATTENTION_filtered,!ID %in% VR_only)
-
-
-# Bind VR_df_grandperformance and PC_df_grandperformance together
-combined_df <- rbind(VR_df_grandperformance, PC_df_grandperformance)
-# adding a column with the condition label.
-combined_df$condition <- rep(c("VR", "PC"), each = 73)
-# remove any participants who did not meet the 55% criteria before proceeding with the later step of removing outliers. This will ensure that we are only removing outliers from a reliable and consistent data set.
-combined_df_filtered <- combined_df
-combined_df_filtered <-
-  filter(combined_df_filtered,!i %in% common_IDs)
-combined_df_filtered <-
-  filter(combined_df_filtered,!i %in% PC_only)
-combined_df_filtered <-
-  filter(combined_df_filtered,!i %in% VR_only)
-
-
-# We are now calculating the Z-scores for each participant, which will represent the number of standard deviations (SD) that each participant is from the mean. This will allow us to compare participants on a common scale and make more accurate statistical inferences.
-combined_df_filtered <- combined_df_filtered %>%
-  mutate(
-    zscore = (
-      combined_df_filtered$corrects - mean(combined_df_filtered$corrects, na.rm =
-                                             T)
-    ) / sd(combined_df_filtered$corrects, na.rm = T)
-  )
-ID <- combined_df_filtered$i
-group <- combined_df_filtered$condition
-z <- combined_df_filtered$zscore
-performance <- combined_df_filtered$corrects
-data.frame(ID, group, performance, z)
-
-combined_df_filtered <- combined_df_filtered %>%
-  mutate(zscore = (
-    combined_df_filtered$RT - mean(combined_df_filtered$RT, na.rm = T)
-  ) / sd(combined_df_filtered$RT, na.rm = T))
-ID <- combined_df_filtered$i
-group <- combined_df_filtered$condition
-z <- combined_df_filtered$zscore
-performance <- combined_df_filtered$RT
-data.frame(ID, group, performance, z)
-
-# We are now removing any participants that have outliers that exceed more than 2 standard deviations from the mean. This is an important step to ensure that our data set is not skewed by extreme values and that our analysis is based on reliable data.
-ATTENTION_filtered <- filter(ATTENTION_filtered, ID != "20002")
-ATTENTION_filtered <- filter(ATTENTION_filtered, ID != "30035")
-
-# We are now setting the complete data set by removing any outliers and participants who did not meet the 55% criteria. This will ensure that our analysis is based on a clean and reliable data set.
-ATTENTION <- ATTENTION_filtered
-# Convert seconds to milliseconds
-ATTENTION$RT <- ATTENTION$RT * 1000
-# remove all objects except for mydata and mylist
-rm(list = setdiff(ls(), c("ATTENTION")))
-# We have a total of 32 participants, and none of them have outliers that exceed more than 2 standard deviations from the mean. Additionally, all participants meet the 55% criteria.
-ATTENTION %>%
-  group_by(condition) %>%
-  summarize(distinct_points = n_distinct(ID))
-```
 
 ```{r distribution and variance tjek}
 # We are plotting the quantile-quantile plots to ensure normal distribution of the data. We decided not to use the Shapiro-Wilk test due to its sensitivity to large sample sizes.
@@ -1391,139 +1205,6 @@ ATTENTION %>%
   levene_test(corrects ~ condition)
 ```
 
-```{r PC diffrences between stimuli type and compatibility}
-# In the first few lines, we are creating a new data frame called "PC" that is a subset of the original "ATTENTION" data frame. We are selecting only the rows where the "condition" column equals "PC".
-PC <- subset(ATTENTION, condition == "PC")
-
-# We are then calculating the means, standard deviations, and sample sizes for RT and corrects for each level of "stimuli_type" using the dplyr function "get_summary_stats". This is done separately for each variable.
-PC %>%
-  group_by(stimuli_type) %>%
-  get_summary_stats(RT, type = "mean_sd")
-
-PC %>%
-  group_by(stimuli_type) %>%
-  get_summary_stats(corrects, type = "mean_sd")
-
-# We then repeat the above step, but grouping by "stimuli_compatibility" instead of "stimuli_type".
-PC %>%
-  group_by(stimuli_compatibility) %>%
-  get_summary_stats(corrects, type = "mean_sd")
-
-PC %>%
-  group_by(stimuli_compatibility) %>%
-  get_summary_stats(RT, type = "mean_sd")
-
-# Next, we calculate the means, standard deviations, and sample sizes for RT and corrects for each combination of "stimuli_type" and "stimuli_compatibility" using "get_summary_stats".
-PC %>%
-  group_by(stimuli_type, stimuli_compatibility) %>%
-  get_summary_stats(corrects, type = "mean_sd")
-
-PC %>%
-  group_by(stimuli_type, stimuli_compatibility) %>%
-  get_summary_stats(RT, type = "mean_sd")
-
-# Finally, we perform paired-t-tests to compare the means of corrects and RT between each level of "stimuli_compatibility" for each level of "stimuli_type". We use the "t_test" function from the "rstatix" package, and adjust the p-values using the Bonferroni correction.
-PC %>%
-  group_by(stimuli_type) %>%
-  t_test(corrects ~ stimuli_compatibility,
-         p.adjust.method = "bonferroni",
-         paired = T)
-
-PC %>%
-  group_by(stimuli_type) %>%
-  t_test(RT ~ stimuli_compatibility,
-         p.adjust.method = "bonferroni",
-         paired = T)
-
-# Additionally, we perform paired-t-tests to compare the means of corrects and RT between each level of "stimuli_type" for each level of "stimuli_compatibility". These are also adjusted using the Bonferroni correction.
-PC %>%
-  t_test(corrects ~ stimuli_type,
-         p.adjust.method = "bonferroni",
-         paired = T)
-
-PC %>%
-  t_test(corrects ~ stimuli_compatibility,
-         p.adjust.method = "bonferroni",
-         paired = T)
-
-PC %>%
-  t_test(RT ~ stimuli_type,
-         p.adjust.method = "bonferroni",
-         paired = T)
-
-PC %>%
-  t_test(RT ~ stimuli_compatibility,
-         p.adjust.method = "bonferroni",
-         paired = T) 
-
-```
-
-```{r VR diffrences between stimuli type and compatibility}
-# In the first few lines, we are creating a new data frame called "VR" that is a subset of the original "ATTENTION" data frame. We are selecting only the rows where the "condition" column equals "VR".
-VR <- subset(ATTENTION, condition == "VR")
-
-# We are then calculating the means, standard deviations, and sample sizes for RT and corrects for each level of "stimuli_type" using the dplyr function "get_summary_stats". This is done separately for each variable.
-VR %>%
-  group_by(stimuli_type) %>%
-  get_summary_stats(RT, type = "mean_sd")
-
-VR %>%
-  group_by(stimuli_type) %>%
-  get_summary_stats(corrects, type = "mean_sd")
-
-# We then repeat the above step, but grouping by "stimuli_compatibility" instead of "stimuli_type".
-VR %>%
-  group_by(stimuli_compatibility) %>%
-  get_summary_stats(corrects, type = "mean_sd")
-
-VR %>%
-  group_by(stimuli_compatibility) %>%
-  get_summary_stats(RT, type = "mean_sd")
-
-# Next, we calculate the means, standard deviations, and sample sizes for RT and corrects for each combination of "stimuli_type" and "stimuli_compatibility" using "get_summary_stats".
-VR %>%
-  group_by(stimuli_type, stimuli_compatibility) %>%
-  get_summary_stats(corrects, type = "mean_sd")
-
-VR %>%
-  group_by(stimuli_type, stimuli_compatibility) %>%
-  get_summary_stats(RT, type = "mean_sd")
-
-# Finally, we perform paired-t-tests to compare the means of corrects and RT between each level of "stimuli_compatibility" for each level of "stimuli_type". We use the "t_test" function from the "rstatix" package, and adjust the p-values using the Bonferroni correction.
-VR %>%
-  group_by(stimuli_type) %>%
-  t_test(corrects ~ stimuli_compatibility,
-         p.adjust.method = "bonferroni",
-         paired = T)
-
-VR %>%
-  group_by(stimuli_type) %>%
-  t_test(RT ~ stimuli_compatibility,
-         p.adjust.method = "bonferroni",
-         paired = T)
-
-# Additionally, we perform paired-t-tests to compare the means of corrects and RT between each level of "stimuli_type" for each level of "stimuli_compatibility". These are also adjusted using the Bonferroni correction.
-VR %>%
-  t_test(corrects ~ stimuli_type,
-         p.adjust.method = "bonferroni",
-         paired = T)
-
-VR %>%
-  t_test(corrects ~ stimuli_compatibility,
-         p.adjust.method = "bonferroni",
-         paired = T)
-
-VR %>%
-  t_test(RT ~ stimuli_type,
-         p.adjust.method = "bonferroni",
-         paired = T)
-
-VR %>%
-  t_test(RT ~ stimuli_compatibility,
-         p.adjust.method = "bonferroni",
-         paired = T)
-```
-
 ```{r calculate and add cost and benefit values to the data set}
 # Create a vector with the desired values
 cb_values <- rep(c("cost", "cost", "cost", "benefit", "benefit", "benefit", "", "", ""), length.out = nrow(data))
@@ -1534,6 +1215,7 @@ ATTENTION$cost_benefit <- cb_values
 ATTENTION <-
   data.frame(ATTENTION, cost_ben_val = rep(NA, nrow(ATTENTION)))
 
+
 # Get unique IDs
 unique_ids <- unique(ATTENTION$ID)
 # Iterate over unique IDs
@@ -1543,7 +1225,7 @@ for (i in unique_ids) {
   
   #___________________VR______________#
   # define the cost value, (incongruent - neutral trials) for the same stimuli type (audio)
-  cost <- data[1, "RT"] - data[7, "RT"]
+  cost <- data[1, "RT_md"] - data[7, "RT_md"]
   # Find the first NA value in the 'cost_ben_val' column
   first_na <- which(is.na(ATTENTION$cost_ben_val))[1]
   
@@ -1551,7 +1233,7 @@ for (i in unique_ids) {
   ATTENTION$cost_ben_val[first_na] <- cost
   
   # define the cost value, (incongruent - neutral trials) for the same stimuli type (visual)
-  cost <- data[2, "RT"] - data[8, "RT"]
+  cost <- data[2, "RT_md"] - data[8, "RT_md"]
   # Find the first NA value in the 'cost_ben_val' column
   first_na <- which(is.na(ATTENTION$cost_ben_val))[1]
   
@@ -1559,7 +1241,7 @@ for (i in unique_ids) {
   ATTENTION$cost_ben_val[first_na] <- cost
   
   # define the cost value, (incongruent - neutral trials) for the same stimuli type (audio.visual)
-  cost <- data[3, "RT"] - data[9, "RT"]
+  cost <- data[3, "RT_md"] - data[9, "RT_md"]
   # Find the first NA value in the 'cost_ben_val' column
   first_na <- which(is.na(ATTENTION$cost_ben_val))[1]
   # Assign the 'cost' value to the first NA in the 'cost_ben_val' column
@@ -1568,7 +1250,7 @@ for (i in unique_ids) {
   
   
   # define the benefit value, (neutral trials - congruent ) for the same stimuli type (audio)
-  benefit <- data[7, "RT"]  - data[4, "RT"]
+  benefit <- data[7, "RT_md"]  - data[4, "RT_md"]
   # Find the first NA value in the 'cost_ben_val' column
   first_na <- which(is.na(ATTENTION$cost_ben_val))[1]
   
@@ -1576,7 +1258,7 @@ for (i in unique_ids) {
   ATTENTION$cost_ben_val[first_na] <- benefit
   
   # define the benefit value, ( neutral trials - congreunt ) for the same stimuli type (visual)
-  benefit <-  data[8, "RT"] - data[5, "RT"]
+  benefit <-  data[8, "RT_md"] - data[5, "RT_md"]
   # Find the first NA value in the 'cost_ben_val' column
   first_na <- which(is.na(ATTENTION$cost_ben_val))[1]
   
@@ -1584,7 +1266,7 @@ for (i in unique_ids) {
   ATTENTION$cost_ben_val[first_na] <- benefit
   
   # define the benefit value, (neutral trials - congreunt) for the same stimuli type (audio.visual)
-  benefit <- data[9, "RT"] - data[6, "RT"]
+  benefit <- data[9, "RT_md"] - data[6, "RT_md"]
   # Find the first NA value in the 'cost_ben_val' column
   first_na <- which(is.na(ATTENTION$cost_ben_val))[1]
   # Assign the 'benefit' value to the first NA in the 'cost_ben_val' column
@@ -1619,7 +1301,7 @@ for (i in unique_ids) {
   
   #___________________PC______________#
   # define the cost value, (incongruent - neutral trials) for the same stimuli type (audio)
-  cost <- data[10, "RT"] - data[16, "RT"]
+  cost <- data[10, "RT_md"] - data[16, "RT_md"]
   # Find the first NA value in the 'cost_ben_val' column
   first_na <- which(is.na(ATTENTION$cost_ben_val))[1]
   
@@ -1627,7 +1309,7 @@ for (i in unique_ids) {
   ATTENTION$cost_ben_val[first_na] <- cost
   
   # define the cost value, (incongruent - neutral trials) for the same stimuli type (visual)
-  cost <- data[11, "RT"] - data[17, "RT"]
+  cost <- data[11, "RT_md"] - data[17, "RT_md"]
   # Find the first NA value in the 'cost_ben_val' column
   first_na <- which(is.na(ATTENTION$cost_ben_val))[1]
   
@@ -1635,7 +1317,7 @@ for (i in unique_ids) {
   ATTENTION$cost_ben_val[first_na] <- cost
   
   # define the cost value, (incongruent - neutral trials) for the same stimuli type (audio.visual)
-  cost <- data[12, "RT"] - data[18, "RT"]
+  cost <- data[12, "RT_md"] - data[18, "RT_md"]
   # Find the first NA value in the 'cost_ben_val' column
   first_na <- which(is.na(ATTENTION$cost_ben_val))[1]
   # Assign the 'cost' value to the first NA in the 'cost_ben_val' column
@@ -1643,7 +1325,7 @@ for (i in unique_ids) {
   
   
   # define the benefit value, (neutral trials - congruent ) for the same stimuli type (audio)
-  benefit <- data[16, "RT"]  - data[13, "RT"]
+  benefit <- data[16, "RT_md"]  - data[13, "RT_md"]
   # Find the first NA value in the 'cost_ben_val' column
   first_na <- which(is.na(ATTENTION$cost_ben_val))[1]
   
@@ -1651,7 +1333,7 @@ for (i in unique_ids) {
   ATTENTION$cost_ben_val[first_na] <- benefit
   
   # define the benefit value, ( neutral trials - congreunt ) for the same stimuli type (visual)
-  benefit <-  data[17, "RT"] - data[14, "RT"]
+  benefit <-  data[17, "RT_md"] - data[14, "RT_md"]
   # Find the first NA value in the 'cost_ben_val' column
   first_na <- which(is.na(ATTENTION$cost_ben_val))[1]
   
@@ -1659,7 +1341,7 @@ for (i in unique_ids) {
   ATTENTION$cost_ben_val[first_na] <- benefit
   
   # define the benefit value, (neutral trials - congreunt) for the same stimuli type (audio.visual)
-  benefit <- data[18, "RT"] - data[15, "RT"]
+  benefit <- data[18, "RT_md"] - data[15, "RT_md"]
   # Find the first NA value in the 'cost_ben_val' column
   first_na <- which(is.na(ATTENTION$cost_ben_val))[1]
   # Assign the 'benefit' value to the first NA in the 'cost_ben_val' column
@@ -1691,7 +1373,7 @@ for (i in unique_ids) {
   
 }
 
-# Convert the 'cost_ben_val' column of the 'ATTENTION' dataframe to numeric data type
+# ConveRT_md the 'cost_ben_val' column of the 'ATTENTION' dataframe to numeric data type
 ATTENTION$cost_ben_val <- as.numeric(ATTENTION$cost_ben_val)
 
 # Group the 'ATTENTION' dataframe by 'condition', 'stimuli_type', and 'cost_benefit' columns and
@@ -1727,71 +1409,131 @@ ATTENTION %>%
          paired = T)
 
 # Additionally, we calculate the means and standard deviations of cost benefit results for each combination of "cost_benefit" and "stimuli_type".
-ATTENTION %>%
-  group_by(cost_benefit, stimuli_type, condition) %>%
+# 
+my_colors <- c("#0072B2", "#D55E00")
+summary_stats <- ATTENTION %>%
+  group_by(condition,cost_benefit,stimuli_type ) %>%
   get_summary_stats(cost_ben_val, type = "mean_sd")
+  
+ggplot(summary_stats, aes(x = stimuli_type, y = mean, fill = cost_benefit)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  facet_wrap(~condition) +
+  scale_fill_manual(values = my_colors) +
+  labs(x = "Stimuli Type", y = "search time difffrence", fill = "cost/benefit")
+
+
 ```
 
-```{r diffrences between stimuli type and compatibility and conditions}
-#
+```{r stattistics}
+# statistics
+# all permutations and between condition
 ATTENTION %>%
-  group_by(stimuli_type, condition) %>%
-  get_summary_stats(RT, type = "mean_sd")
-
-ATTENTION %>%
-  group_by(stimuli_compatibility, condition) %>%
-  get_summary_stats(corrects, type = "mean_sd")
-
-ATTENTION %>%
-  group_by(stimuli_type, condition) %>%
-  get_summary_stats(corrects, type = "mean_sd")
-
-ATTENTION %>%
-  group_by(stimuli_compatibility, condition) %>%
-  get_summary_stats(RT, type = "mean_sd")
+  group_by(stimuli_type,stimuli_compatibility) %>%
+  t_test(RT_md ~ condition,
+         p.adjust.method = "bonferroni",
+         paired = T)
 
 ATTENTION %>%
   group_by(stimuli_type, stimuli_compatibility, condition) %>%
-  get_summary_stats(corrects, type = "mean_sd")
-
-ATTENTION %>%
-  group_by(stimuli_type, stimuli_compatibility, condition) %>%
-  get_summary_stats(RT, type = "mean_sd")
-##
-
-
-
-## Stimuli type X compatibility differences
-ATTENTION %>%
-  group_by(stimuli_type, stimuli_compatibility) %>%
-  t_test(corrects ~ condition ,
+  get_summary_stats(RT_md, type = "mean_sd")
+# simple overall t test to see the performance.
+ATTENTION %>% 
+  t_test(RT_md ~ condition,
          p.adjust.method = "bonferroni",
          paired = T)
 
 ATTENTION %>%
-  group_by(stimuli_type, stimuli_compatibility) %>%
-  t_test(RT ~ condition , p.adjust.method = "bonferroni", paired = T)
-## either Stimuli type or compatibility differences
+  group_by(condition) %>%
+  get_summary_stats(RT_md, type = "mean_sd")
+
+
+# within stim type
+view(ATTENTION %>%
+  group_by(condition) %>%
+  t_test(RT_md ~stimuli_type ,
+         p.adjust.method = "bonferroni",
+         paired = T))
 ATTENTION %>%
-  group_by(stimuli_type) %>%
-  t_test(corrects ~ condition,
+  group_by(condition,stimuli_type) %>%
+  get_summary_stats(RT_md, type = "mean_sd")
+
+
+# within con compatibility
+ATTENTION %>%
+  group_by(condition) %>%
+  t_test(RT_md ~stimuli_compatibility ,
          p.adjust.method = "bonferroni",
          paired = T)
-
 ATTENTION %>%
-  group_by(stimuli_compatibility) %>%
-  t_test(corrects ~ condition,
-         p.adjust.method = "bonferroni",
-         paired = T)
+  group_by(condition,stimuli_compatibility) %>%
+  get_summary_stats(RT_md, type = "mean_sd")
 
-ATTENTION %>%
-  group_by(stimuli_type) %>%
-  t_test(RT ~ condition , p.adjust.method = "bonferroni", paired = T)
+```
 
-ATTENTION %>%
-  group_by(stimuli_compatibility) %>%
-  t_test(RT ~ condition, p.adjust.method = "bonferroni", paired = T)
-#
+
+```{r plots }
+ggplot(ATTENTION, aes(x = stimuli_type, y = RT_md, fill = stimuli_compatibility)) +
+  geom_violin(aes(color = stimuli_compatibility), trim = FALSE) + 
+  geom_jitter(aes(color = stimuli_compatibility), position = position_jitter(0.7), alpha = 0.6) + 
+  facet_wrap(~condition) +
+  labs(x = "Stimuli Type", y = "Search Time", color = "Stimuli Compatibility") +
+  theme_bw() +
+  guides(fill = FALSE) +
+  scale_color_manual(values = c("#0072B2", "#E69F00", "#009E73")) +
+  scale_fill_manual(values = c("#0072B2", "#E69F00", "#009E73")) +
+  theme(legend.position = "bottom", legend.title = element_text(face = "bold"), 
+        panel.spacing.x = unit(0.5, "cm"))
+
+RT
+
+
+
+# Calculate the mean RT for each combination of stimuli type, compatibility, and condition
+mean_RT <- aggregate(RT_md ~ stimuli_type + stimuli_compatibility + condition, data = ATTENTION, mean)
+# Define custom color palette
+my_colors <- c("#0072B2", "#E69F00", "#009E73", "#F0E442")
+# Create the plot
+ggplot(mean_RT, aes(x = stimuli_type, y = RT_md, fill = stimuli_compatibility)) +
+  geom_bar(stat = "identity", position = position_dodge(), alpha = 0.8) + 
+  facet_wrap(~condition) +
+  labs(x = "Stimuli Type", y = "Mean search time", fill = "Stimuli Compatibility") +
+  theme_bw() + # Set the theme to black and white
+  guides(fill = guide_legend(nrow = 2, byrow = TRUE, title.position = "top", title.hjust = 0.5,
+                              keywidth = unit(1, "cm"), keyheight = unit(0.5, "cm"),
+                              label.position = "right", label.hjust = 0, label.vjust = 0.5,
+                              label.theme = element_text(size = 8),
+                              reverse = TRUE)) + # Add the legend with custom formatting
+  scale_fill_manual(values = my_colors) # Set the custom colors for the legend
+
+
+## for my presentation: rather than the violin .> 
+mean_RT <- aggregate(RT_md ~ stimuli_type + stimuli_compatibility + condition, data = ATTENTION, mean)
+# Define the colors for each condition
+my_colors <- c("#0072B2", "#D55E00")
+# Create the plot with fill based on condition
+ggplot(mean_RT, aes(x = stimuli_type, y = RT_md, fill = condition)) +
+  geom_bar(stat = "identity", position = position_dodge(), alpha = 0.8) + 
+  facet_wrap(~stimuli_compatibility) +
+  labs(x = "Stimuli Type", y = "Mean RT", fill = "Stimuli Compatibility")  + # Set the theme to black and white
+  guides(fill = guide_legend(title = "Condition", title.position = "top")) + # Add legend with title on top
+  scale_fill_manual(values = my_colors) + theme_bw()
+
+
+
+
+my_colors <- c("#0072B2", "#D55E00")
+# Create the plot with fill based on condition and facet by condition
+ggplot(mean_RT, aes(x = stimuli_type, y = RT_md, fill = condition)) +
+  geom_bar(stat = "identity", position = position_dodge()) +
+  labs(x = "Stimuli Type", y = "mean search time", fill = "Stimuli Compatibility") +
+  scale_fill_manual(values = my_colors) + 
+  facet_grid(. ~ condition, scales = "free") + # facet by condition
+  theme_bw()
+
+
+
+
+
 ```
 
 ```{r Response Time Coefficient of Variability (RTCV)}
@@ -1812,41 +1554,4 @@ RTCV_table_total <- ATTENTION %>%
 
 RTCV_table
 RTCV_table_total
-```
-
-```{r plotting}
-# summary_tavble represent the means and sd for the conditions and stimuli types, makes it easier to plot similar to matuz
-summary_table <- ATTENTION %>%
-  group_by(cost_benefit, stimuli_type, condition) %>%
-  get_summary_stats(cost_ben_val, type = "mean_sd")
-# plotting the cost and benefit diffrences.
-ggplot(summary_table, aes(x = stimuli_type , y = mean, fill = cost_benefit)) +
-  geom_bar(stat = "identity", position = "dodge") +
-  theme_bw() +
-  facet_wrap( ~ condition) +
-  labs(title = "Mean Cost-Benefit Value grouped by Condition and Stimuli Type",
-       x = "Stimuli types",
-       y = "Mean Cost-Benefit Value",
-       fill = "Condition")
-
-# plotting all the permutations for each condition.
-ggplot(ATTENTION,
-       aes(x = stimuli_type, y = RT, fill = stimuli_compatibility)) +
-  geom_violin(trim = FALSE,
-              alpha = 0.5,
-              position = "dodge") +
-  geom_jitter(
-    alpha = 0.9,
-    size = 1,
-    shape = 21,
-    width = 1
-  ) +
-  facet_wrap( ~ condition) +
-  labs(x = "Stimuli Type",
-       y = "Search Time",
-       fill = "Stimuli Compatibility",
-       color = "Stimuli Compatibility") +
-  theme_bw() +
-  scale_fill_manual(values = c("#F8766D", "#00BFC4", "black")) +
-  scale_color_manual(values = c("#F8766D", "#00BFC4", "black"))
 ```

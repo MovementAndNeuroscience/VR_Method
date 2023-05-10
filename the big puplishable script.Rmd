@@ -1,7 +1,7 @@
 ---
 title: "Data Analyses for Virtual Reality and Computer Screen Experiments"
 author: "Rasmus Ahmt & Marta Topor"
-date: "2023-3-31"
+date: "2023-05-08"
 output: word_document
 ---
 
@@ -22,35 +22,37 @@ library(ggstance)
 library(emmeans)
 library(car)
 library(broom)
+library(readr)
+library(jmv)
+library(knitr)
+library(lme4)
+library(lmerTest)
+library(effectsize)
 
 #set R language to English
 Sys.setenv(lang = "en_UK")
+
+#Data paths Marta
+data_path_VR <- "~/6. VR Study/VR_Method/VR_Method"
+data_path_PC <- "~/6. VR Study/VR_Method/VR_Method/RAW PC/PC attention data RAW-kopi"
+output <- "~/6. VR Study/VR_Method/VR_Method"
+
+#Data paths Rasmus
+#data_path_VR <- "/Users/rasmus/Desktop/VR_Method"
+#data_path_PC <- "/Users/rasmus/Desktop/VR_Method/RAW PC/PC attention data RAW-kopi"
+#output <- "/Users/rasmus/Desktop/VR_Method"
 ```
   
 # Introduction 
 This document presents the output for data analyses used in a methodological article titled: "Developing Virtual Reality and Computer Screen Experiments One to One Using Selective Attention as a Case Study".  
-
+The following analysis steps are included:  
   
-```{r tools}
-## The tools needed for analyses will be deposited here
-
-## First, we need to consider that we are working with .csv files that were recorded with a semicolon separated settings rather than comma separated settings. This means that numerical decimal places are separated with a comma rather than a dot. Therefore, the commas in numbers will have to be replaced with dots so that they can be classed as numerical values.   
-   
-## The following function is needed (sourced from https://stackoverflow.com/questions/59380129/changing-to-within-a-function-in-r )
-## Change "," to "."
-convert_number <- function(x) {
-  x <- as.character(x)
-  x <- gsub(
-    pattern = ",",
-    replacement = ".",
-    x = x,
-    fixed = TRUE
-  )
-  x <- as.numeric(x)
-  return(x)
-}
-##
-```
+* Data Quality Assessment  
+* The Calculation of Indices  
+* Descriptive Statistics  
+* The Assessment of Assumptions for Inferential Analyses  
+* Inferential Results and Plots  
+  
 
 ```{r import data for VR}
 # This section of the script is responsible for importing data from the designated folder.
@@ -58,18 +60,18 @@ convert_number <- function(x) {
 
 #The task that the data were recorded for is a multisensory selective attention task. There are two conditions - VR and PC. The data for these conditons are kept in different folders. 
 
-
 #_______________VR__________________________#
 # Import all data for the VR condition.
 # The VR folder has then separate folders for each participants. These hold .csv files, semicolon separated, with output for each participant. 
 
 
 # Set working directory
-setwd("/Users/rasmus/Desktop/VR_Method")
+setwd(data_path_VR)
 
 # Look in the directory and search for CSV files.
-myList <- list.dirs(path = "/Users/rasmus/Desktop/VR_Method/RAW VR")[-1] #not quite good to name a list "list" because it might get confusing in R at some point, so I changed it to myList, [-1] because the first position listed is the main folder which is not needed here 
-
+#myList <- list.dirs(path = "/Users/rasmus/Desktop/VR_Method/RAW VR")[-1]
+myList <- list.dirs(path = "~/6. VR Study/VR_Method/VR_Method/RAW VR")[-1] #not quite good to name a list "list" because it might get confusing in R at some point, so I changed it to myList, [-1] because the first position listed is the main folder which is not needed here 
+myFolders <- list.dirs(path ="~/6. VR Study/VR_Method/VR_Method/RAW VR", full.names = FALSE)[-1]
 
 #Create and empty data frame to extract the data
 #The data frame includes columns for mean RTs, RT SDs, median RTs and Accuracy including correct and missed trials. These are extracted for three multisensory modalities (auditory, visual and audio-visual) and three congruency types (congruent, incongruent and neutral). So there are 9 types of trials (3x3) and each type of trial has mean RT, RT SD and Accuracy extracted (9 x 3) resulting in 46 data columns. For Reaction time data - only correct trials are used
@@ -99,7 +101,7 @@ for (i in 1:length(myList))
   colnames(myData) <- header 
   
   # Extract Participants number
-  DF$id[i] <- substr(myList[i], 60, 65) # take characters 60-65 from the name of the folder
+  DF$id[i] <- abs(parse_number(myFolders[i])) # extract participant number from the file name
   
   ## Extract Data for Incongruent Trials
   # Incongruent_and_audio
@@ -355,6 +357,7 @@ VR_not_done <- DF
 #Here we reuse the DF and myList structures made previously but replace all values with NA just to make sure no previous values remain
 DF[,] <- NA
 myList <- NA
+myFolders <- NA
 #We will also make new structures for the different types of conditions so these need to be removed first to make sure we are not inputing old data by accident
 rm(congruent_and_audio.visual1, congruent_and_audio1, congruent_and_visual1, incongruent_and_audio.visual1, incongruent_and_audio1, incongruent_and_visual1, neutral_and_audio.visual1, neutral_and_audio1, neutral_and_visual1)
 
@@ -363,11 +366,10 @@ rm(congruent_and_audio.visual1, congruent_and_audio1, congruent_and_visual1, inc
 # In the PC folder, there is one .csv file, semicolon separated, for each participant. They will be imported into two separate data frames.
 
 # Set the working directory to the PC folder
-setwd("/Users/rasmus/Desktop/VR_Method/RAW PC")
+setwd(data_path_PC) 
 
 # Look in the directory and search for CSV files.
 myList <- list.files(pattern = ".csv", recursive = TRUE) #not quite good to name a list "list" becaude it might get confusinng in R at some point, so I changed it to myList 
-
 
 #Loop through the files to extract data for the DF
 # "i" represents the current participant and is set to loop through all files in the directory.
@@ -384,7 +386,7 @@ for (i in 1:length(myList))
   myData$Distractor.Modality.Block1 <- myData_base$Distractor.Modality.Block1 #replace the character columns with the base data
   
   # Extract Participants number
-  DF$id[i] <- substr(myList[i], 1, 5) # take characters 1-5 from the name of the file
+  DF$id[i] <- parse_number(myList[i]) #extract participant number from the name of the file
   
   ## Extract Data for Incongruent Trials
   # Incongruent_and_audio
@@ -634,12 +636,6 @@ PC_not_done <- DF
 ```
 
 ```{r long format for PC}
-# to keep track of our 73 participants, we will assign them a ID number per participant.
-ID <- c(10103, 10106, 10107, 10108, 10110, 10113, 10114, 10116, 10117, 10123, 10124, 10126, 10127, 10128, 10129, 10131, 10133, 10134, 10136, 10137, 10138, 10139, 10153, 10154, 10156, 10157, 10158, 20002, 20003, 20005, 20006, 20008, 20009, 20020, 20021, 20022, 30002, 30003, 30004, 30006, 30009, 30010, 30012, 30013, 30019, 30020, 30022, 30023, 30024, 30025, 30026, 30027, 30028, 30030, 30032, 30033, 30034, 30035, 30036, 30040, 30042, 30044, 30046, 30048, 30049, 30051, 30052, 30053, 30054, 30055, 30058, 30060, 30061)
-
-PC_not_done$id <- ID
-VR_not_done$id <- ID
-
 #_______________PC___________________________#
 # create a empty data frame that's empty ready to fill it up
 LONG_PC_DATA <- data.frame(
@@ -1087,31 +1083,38 @@ rm(congruent_and_audio.visual1, congruent_and_audio1, congruent_and_visual1, inc
 
 ```
 
-### Data Quality  
+# Data Quality  
 Reaction time data is very sensitive to biases and extreme values. Therefore it is important to ensure consistency in the calculation of RT values between different conditions.  
 First we ensure that all conditions do not have great differences in the number of available trials and that a reasonable minimum number of trials per trial type (congruency x multisensory modality) and per condition (VR and PC) are retained. This will help us to ensure that the differences we observe are not too affected by different trial numbers. 
   
-The ideal would be to keep 9 trials per trial type and condition because that would ensure at least 56% accuracy on each trial type but this is not going to leave us with too many participants. In fact, the numbers do not look great (the code below can be manipulated to check how many participants remain if we set the minimum number of trials to be higher or lower - line 1081)  
+ <br>  
+The ideal would be to keep 9 trials per trial type and condition because that would ensure at least 56% accuracy on each trial type but this is not going to leave us with too many participants. In fact, the numbers do not look great.   
   
-9 trials = 8 participants  
+9 correct trials per type = 8 participants left    
 8 trials = 8 participants  
 7 trials = 13 participants  
 6 trials = 17 participants  
 5 trials = 22 participants  
   
-Additionally, we have to remove all participants with overall accuracy below 55% - this means 3 additional participants and we are only left with 19 in the end.
+There were 73 participants at the start. With the remaining 22 participants, this means that 51 participants were removed because they did not reach the threshold of 5 trials per trial type.  
+The number of children who did not reach this number per condition is displayed below together with a two-proportions z-test result:    
 
-```{r Data Quality Exclusions}
-#We have to keep a consistent number of trials between the different types and conditions  so let's keep it as minimum of 5 trials per participants
-ATTENTION_trial_filt <- ATTENTION_base %>% filter(corrects >4)
+```{r cond_excl}
 
-
-# summarize the amount of children who did not get above 5 in a permutation. grouped by condition.
 unique_ID <- unique(ATTENTION_base$ID)
-ATTENTION_base %>%
+proportion <- ATTENTION_base %>%
   filter(ID %in% unique_ID) %>%
   group_by(condition) %>%
   summarize(num_ID_4_or_lower = n_distinct(ID[corrects <= 4]))
+
+proportion
+
+prop.test(x = proportion$num_ID_4_or_lower, n = c(length(unique(ATTENTION_base$ID)), length(unique(ATTENTION_base$ID))))
+
+```
+
+The number of children who did not reach this number in both conditions:  
+```{r shared_excl}
 # figure out how many share ID number, so i can calculate the amount of children who did not make criteria in each con.
 ATTENTION_base %>%
   filter(corrects <= 4) %>%
@@ -1119,6 +1122,14 @@ ATTENTION_base %>%
   filter("PC" %in% condition & "VR" %in% condition) %>%
   summarize(num_rows = n()) %>%
   summarize(num_shared_IDs = n())
+
+```
+  
+Additionally, we have to remove all participants with overall accuracy below 55% - this means 3 additional participants and we are only left with 19 in the end.
+
+```{r Data Quality Exclusions}
+#We have to keep a consistent number of trials between the different types and conditions  so let's keep it as minimum of 5 trials per participants
+ATTENTION_trial_filt <- ATTENTION_base %>% filter(corrects >4)
 
 #Now let's check how many participants have all trial types retained in both PC and VR after we filtered out the low numbers of correct trials 
 #R will produce a vector with the number of trials types retained per person. 
@@ -1130,7 +1141,7 @@ x <- numeric()
 for (i in 1:length(unique_ID)){
   x <- append(x, length(ATTENTION_trial_filt$ID[ATTENTION_trial_filt$ID == unique_ID[i]]), after = length(x))
   
-}
+} #make a list of the number of trial types by counting the number of rows per unique ID
 
 #How many participants have all 18 trial types (9 trial types per condition, VR & PC)
 unique_ID_keep <- unique_ID[x == 18]
@@ -1146,32 +1157,24 @@ ATTENTION_ptts_filt <- ATTENTION_trial_filt %>% filter(ID %in% unique_ID_keep)
 VR <- numeric()
 PC <- numeric()
 
-#This is code that can be used to calculate accuracy excluding missed responses
-#for (i in 1:length(unique_ID_keep)){
-#  VR <- append(VR, sum(ATTENTION_ptts_filt$corrects[ATTENTION_ptts_filt$ID == unique_ID_keep[i] & ATTENTION_ptts_filt$condition == "VR"])/(144-sum(ATTENTION_ptts_filt$missed[ATTENTION_ptts_filt$ID == unique_ID_keep[i] & ATTENTION_ptts_filt$condition == "VR"]))*100, after = length(VR))
-#}
 
 for (i in 1:length(unique_ID_keep)){
   VR <- append(VR, (sum(ATTENTION_ptts_filt$corrects[ATTENTION_ptts_filt$ID == unique_ID_keep[i] & ATTENTION_ptts_filt$condition == "VR"])/144)*100, after = length(VR))
   
-}
+} #make a vector with accuracy for all participants, VR condition
 
-#This is code that can be used to calculate accuracy excluding missed responses
-#for (i in 1:length(unique_ID_keep)){
-#  PC <- append(PC, sum(ATTENTION_ptts_filt$corrects[ATTENTION_ptts_filt$ID == unique_ID_keep[i] & ATTENTION_ptts_filt$condition == "PC"])/(144-sum(ATTENTION_ptts_filt$missed[ATTENTION_ptts_filt$ID == unique_ID_keep[i] & ATTENTION_ptts_filt$condition == "PC"]))*100, after = length(PC))
-#}
 
 for (i in 1:length(unique_ID_keep)){
   PC <- append(PC, (sum(ATTENTION_ptts_filt$corrects[ATTENTION_ptts_filt$ID == unique_ID_keep[i] & ATTENTION_ptts_filt$condition == "PC"])/144)*100, after = length(PC))
   
-}
+} #make a vector with accuracy for all participants, PC condition
 
-#Print Participant IDs that should be removed 
+#Print Participant IDs that should be removed - just a check 
 # PC
-unique_ID_keep[PC < 55]
+#unique_ID_keep[PC < 55]
 
 #VR
-unique_ID_keep[VR < 55]
+#unique_ID_keep[VR < 55]
 
 #Create a new ID vector to keep
 
@@ -1179,379 +1182,692 @@ to_exclude <- unique(c(unique_ID_keep[PC < 55], unique_ID_keep[VR < 55]))
 
 
 ATTENTION <- filter(ATTENTION_ptts_filt, !(ID %in% (to_exclude)))
+#organise the dataframe by ID number 
+ATTENTION <- ATTENTION[order(ATTENTION$ID),]
 
 # overview of the amount of participant left 
-length(unique(ATTENTION$ID))
+#length(unique(ATTENTION$ID))
 
+rm(unique_ID, unique_ID_keep, to_exclude, PC, VR, x)
 
 
 ```
 
+# Indices - Calculation of variables  
+  
+There are some variables that had to be calculated from the data.  These include:  
+  
+* **Attentional Cost** - reaction time median difference between the incongruent and neutral trials. This is calculated per person and per sensory modality as incongruent reaction time median - neutral reaction time median. This is supposed to produce a positive number reflecting the magnitude of attentional reaction time cost in seconds in incongruent trials compared to neutral trials.   
+* **Attentional Benefit** - reaction time median difference between the neutral and congruent trials. This is calculated per person and per sensory modality as neutral reaction time median - congruent reaction time median. This is supposed to produce a positive number reflecting the magnitude of attentional reaction time benefit in seconds in congruent trials compared to neutral trials.  
+* **The Response Time Coefficient of Variability (RTCV)** - a measure of the variability in response times for a given task or stimulus. It is calculated as the ratio of the standard deviation of response times to the mean response time. Here kept in proportion values. The formula for calculating RTCV is: RTCV = standard deviation of response times / mean response time. A higher RTCV indicates that response times are more variable or inconsistent, while a lower RTCV indicates more consistent or predictable response times. https://doi.org/10.3389/fpsyg.2013.00573  
+* **Accuracy** - the proportion of correct responses per condition and per sensory and congruency. The original variable is in correct response counts (out of 16) and needs to be changed to proportions for easier interpretation and comparison  
+  
+  
+NOTE: There is one duplicate value in the dataset - participant 30053 has the same RT median in VR incongruent audio and VR neutral audio which gives the attentional cost value as 0. This is quite unlikely but after checking the RT variables for these conditions for these conditions for this participants, it is clear that these variables have different data and give a different mean. Therefore, it seems like a genuine co-incidence. 
 
-```{r distribution and variance tjek}
-# We are plotting the quantile-quantile plots to ensure normal distribution of the data. We decided not to use the Shapiro-Wilk test due to its sensitivity to large sample sizes.
-ggqqplot(ATTENTION, "RT", ggtheme = theme_bw()) +
-  facet_grid(stimuli_type ~ condition  ~ stimuli_compatibility)
+```{r cost & benefit values}
+# Add cost and benefit values to the overall dataframe 
 
-ggqqplot(ATTENTION, "corrects", ggtheme = theme_bw()) +
-  facet_grid(stimuli_type ~ condition  ~ stimuli_compatibility)
-# We are using the Levene's test to check for differences in variance between the two groups. This is to ensure that the assumption of homogeneity of variance is met.
-ATTENTION %>%
-  group_by(stimuli_compatibility , stimuli_type) %>%
-  levene_test(RT ~ condition)
+ATTENTION$cost_ben_val <- NA
+ATTENTION$cost_benefit <- NA
 
-ATTENTION %>%
-  group_by(stimuli_compatibility , stimuli_type) %>%
-  levene_test(corrects ~ condition)
-```
+#all incongruent trials will have a calculation for cost
+ATTENTION$cost_benefit[ATTENTION$stimuli_compatibility =="incongruent"] <- "cost"
+#all congruent trials will have a calculation for cost
+ATTENTION$cost_benefit[ATTENTION$stimuli_compatibility =="congruent"] <- "benefit"
 
-```{r calculate and add cost and benefit values to the data set}
-# Create a vector with the desired values
-cb_values <- rep(c("cost", "cost", "cost", "benefit", "benefit", "benefit", "", "", ""), length.out = nrow(data))
-
-# Add the vector as a new column to the data set
-ATTENTION$cost_benefit <- cb_values
-
-ATTENTION <-
-  data.frame(ATTENTION, cost_ben_val = rep(NA, nrow(ATTENTION)))
-
-
-# Get unique IDs
+#IDs for the loop
 unique_ids <- unique(ATTENTION$ID)
 # Iterate over unique IDs
+
 for (i in unique_ids) {
-  # Subset data for current ID
-  data <- subset(ATTENTION, ID == i)
+  #-------- ATTENTIONAL COST--------
+  #audio cost VR
+  ATTENTION$cost_ben_val[ATTENTION$ID == i & ATTENTION$stimuli_type == "audio" & ATTENTION$stimuli_compatibility =="incongruent" & ATTENTION$condition == "VR"] <- ATTENTION$RT_md[ATTENTION$ID == i & ATTENTION$stimuli_type == "audio" & ATTENTION$stimuli_compatibility == "incongruent" & ATTENTION$condition == "VR"] - ATTENTION$RT_md[ATTENTION$ID == i & ATTENTION$stimuli_type == "audio" & ATTENTION$stimuli_compatibility == "neutral" & ATTENTION$condition == "VR"]
+  #audio cost PC
+  ATTENTION$cost_ben_val[ATTENTION$ID == i & ATTENTION$stimuli_type == "audio" & ATTENTION$stimuli_compatibility =="incongruent" & ATTENTION$condition == "PC"] <- ATTENTION$RT_md[ATTENTION$ID == i & ATTENTION$stimuli_type == "audio" & ATTENTION$stimuli_compatibility == "incongruent" & ATTENTION$condition == "PC"] - ATTENTION$RT_md[ATTENTION$ID == i & ATTENTION$stimuli_type == "audio" & ATTENTION$stimuli_compatibility == "neutral" & ATTENTION$condition == "PC"]
+
+  #visual cost VR
+  ATTENTION$cost_ben_val[ATTENTION$ID == i & ATTENTION$stimuli_type == "visual" & ATTENTION$stimuli_compatibility =="incongruent" & ATTENTION$condition == "VR"] <- ATTENTION$RT_md[ATTENTION$ID == i & ATTENTION$stimuli_type == "visual" & ATTENTION$stimuli_compatibility == "incongruent" & ATTENTION$condition == "VR"] - ATTENTION$RT_md[ATTENTION$ID == i & ATTENTION$stimuli_type == "visual" & ATTENTION$stimuli_compatibility == "neutral" & ATTENTION$condition == "VR"]
+  #visual cost PC
+  ATTENTION$cost_ben_val[ATTENTION$ID == i & ATTENTION$stimuli_type == "visual" & ATTENTION$stimuli_compatibility =="incongruent" & ATTENTION$condition == "PC"] <- ATTENTION$RT_md[ATTENTION$ID == i & ATTENTION$stimuli_type == "visual" & ATTENTION$stimuli_compatibility == "incongruent" & ATTENTION$condition == "PC"] - ATTENTION$RT_md[ATTENTION$ID == i & ATTENTION$stimuli_type == "visual" & ATTENTION$stimuli_compatibility == "neutral" & ATTENTION$condition == "PC"]
   
-  #___________________VR______________#
-  # define the cost value, (incongruent - neutral trials) for the same stimuli type (audio)
-  cost <- data[1, "RT_md"] - data[7, "RT_md"]
-  # Find the first NA value in the 'cost_ben_val' column
-  first_na <- which(is.na(ATTENTION$cost_ben_val))[1]
+  #audio.visual cost VR
+  ATTENTION$cost_ben_val[ATTENTION$ID == i & ATTENTION$stimuli_type == "audio.visual" & ATTENTION$stimuli_compatibility =="incongruent" & ATTENTION$condition == "VR"] <- ATTENTION$RT_md[ATTENTION$ID == i & ATTENTION$stimuli_type == "audio.visual" & ATTENTION$stimuli_compatibility == "incongruent" & ATTENTION$condition == "VR"] - ATTENTION$RT_md[ATTENTION$ID == i & ATTENTION$stimuli_type == "audio.visual" & ATTENTION$stimuli_compatibility == "neutral" & ATTENTION$condition == "VR"]
+  #audio.visual PC
+  ATTENTION$cost_ben_val[ATTENTION$ID == i & ATTENTION$stimuli_type == "audio.visual" & ATTENTION$stimuli_compatibility =="incongruent" & ATTENTION$condition == "PC"] <- ATTENTION$RT_md[ATTENTION$ID == i & ATTENTION$stimuli_type == "audio.visual" & ATTENTION$stimuli_compatibility == "incongruent" & ATTENTION$condition == "PC"] - ATTENTION$RT_md[ATTENTION$ID == i & ATTENTION$stimuli_type == "audio.visual" & ATTENTION$stimuli_compatibility == "neutral" & ATTENTION$condition == "PC"]
   
-  # Assign the 'cost' value to the first NA in the 'cost_ben_val' column
-  ATTENTION$cost_ben_val[first_na] <- cost
+  #--------ATTENTIONAL BENEFIT--------
+  #audio cost CR
+  ATTENTION$cost_ben_val[ATTENTION$ID == i & ATTENTION$stimuli_type == "audio" & ATTENTION$stimuli_compatibility =="congruent" & ATTENTION$condition == "VR"] <- ATTENTION$RT_md[ATTENTION$ID == i & ATTENTION$stimuli_type == "audio" & ATTENTION$stimuli_compatibility == "neutral" & ATTENTION$condition == "VR"] - ATTENTION$RT_md[ATTENTION$ID == i & ATTENTION$stimuli_type == "audio" & ATTENTION$stimuli_compatibility == "congruent" & ATTENTION$condition == "VR"]
+  #audio cost PC
+  ATTENTION$cost_ben_val[ATTENTION$ID == i & ATTENTION$stimuli_type == "audio" & ATTENTION$stimuli_compatibility =="congruent" & ATTENTION$condition == "PC"] <- ATTENTION$RT_md[ATTENTION$ID == i & ATTENTION$stimuli_type == "audio" & ATTENTION$stimuli_compatibility == "neutral" & ATTENTION$condition == "PC"] - ATTENTION$RT_md[ATTENTION$ID == i & ATTENTION$stimuli_type == "audio" & ATTENTION$stimuli_compatibility == "congruent" & ATTENTION$condition == "PC"]
   
-  # define the cost value, (incongruent - neutral trials) for the same stimuli type (visual)
-  cost <- data[2, "RT_md"] - data[8, "RT_md"]
-  # Find the first NA value in the 'cost_ben_val' column
-  first_na <- which(is.na(ATTENTION$cost_ben_val))[1]
+  #visual cost VR
+  ATTENTION$cost_ben_val[ATTENTION$ID == i & ATTENTION$stimuli_type == "visual" & ATTENTION$stimuli_compatibility =="congruent" & ATTENTION$condition == "VR"] <- ATTENTION$RT_md[ATTENTION$ID == i & ATTENTION$stimuli_type == "visual" & ATTENTION$stimuli_compatibility == "neutral" & ATTENTION$condition == "VR"] - ATTENTION$RT_md[ATTENTION$ID == i & ATTENTION$stimuli_type == "visual" & ATTENTION$stimuli_compatibility == "congruent" & ATTENTION$condition == "VR"]
+  #visual cost PC
+  ATTENTION$cost_ben_val[ATTENTION$ID == i & ATTENTION$stimuli_type == "visual" & ATTENTION$stimuli_compatibility =="congruent" & ATTENTION$condition == "PC"] <- ATTENTION$RT_md[ATTENTION$ID == i & ATTENTION$stimuli_type == "visual" & ATTENTION$stimuli_compatibility == "neutral" & ATTENTION$condition == "PC"] - ATTENTION$RT_md[ATTENTION$ID == i & ATTENTION$stimuli_type == "visual" & ATTENTION$stimuli_compatibility == "congruent" & ATTENTION$condition == "PC"]
   
-  # Assign the 'cost' value to the first NA in the 'cost_ben_val' column
-  ATTENTION$cost_ben_val[first_na] <- cost
-  
-  # define the cost value, (incongruent - neutral trials) for the same stimuli type (audio.visual)
-  cost <- data[3, "RT_md"] - data[9, "RT_md"]
-  # Find the first NA value in the 'cost_ben_val' column
-  first_na <- which(is.na(ATTENTION$cost_ben_val))[1]
-  # Assign the 'cost' value to the first NA in the 'cost_ben_val' column
-  ATTENTION$cost_ben_val[first_na] <- cost
-  
-  
-  
-  # define the benefit value, (neutral trials - congruent ) for the same stimuli type (audio)
-  benefit <- data[7, "RT_md"]  - data[4, "RT_md"]
-  # Find the first NA value in the 'cost_ben_val' column
-  first_na <- which(is.na(ATTENTION$cost_ben_val))[1]
-  
-  # Assign the 'benefit' value to the first NA in the 'cost_ben_val' column
-  ATTENTION$cost_ben_val[first_na] <- benefit
-  
-  # define the benefit value, ( neutral trials - congreunt ) for the same stimuli type (visual)
-  benefit <-  data[8, "RT_md"] - data[5, "RT_md"]
-  # Find the first NA value in the 'cost_ben_val' column
-  first_na <- which(is.na(ATTENTION$cost_ben_val))[1]
-  
-  # Assign the 'benefit' value to the first NA in the 'cost_ben_val' column
-  ATTENTION$cost_ben_val[first_na] <- benefit
-  
-  # define the benefit value, (neutral trials - congreunt) for the same stimuli type (audio.visual)
-  benefit <- data[9, "RT_md"] - data[6, "RT_md"]
-  # Find the first NA value in the 'cost_ben_val' column
-  first_na <- which(is.na(ATTENTION$cost_ben_val))[1]
-  # Assign the 'benefit' value to the first NA in the 'cost_ben_val' column
-  ATTENTION$cost_ben_val[first_na] <- benefit
-  
-  
-  # neutral
-  # sett the next three equal to NA due to neutral - neutral is 0   neutral <- "NA"
-  neutral <- "NEUTRAL"
-  first_na <- which(is.na(ATTENTION$cost_ben_val))[1]
-  
-  # Assign the 'benefit' value to the first NA in the 'cost_ben_val' column
-  ATTENTION$cost_ben_val[first_na] <- neutral
-  
-  # neutral
-  # sett the next three equal to NA due to neutral - neutral is 0   neutral <- "NA"
-  neutral <- "NEUTRAL"
-  first_na <- which(is.na(ATTENTION$cost_ben_val))[1]
-  
-  # Assign the 'benefit' value to the first NA in the 'cost_ben_val' column
-  ATTENTION$cost_ben_val[first_na] <- neutral
-  
-  # neutral
-  # sett the next three equal to NA due to neutral - neutral is 0   neutral <- "NA"
-  neutral <- "NEUTRAL"
-  first_na <- which(is.na(ATTENTION$cost_ben_val))[1]
-  
-  # Assign the 'benefit' value to the first NA in the 'cost_ben_val' column
-  ATTENTION$cost_ben_val[first_na] <- neutral
-  
-  
-  
-  #___________________PC______________#
-  # define the cost value, (incongruent - neutral trials) for the same stimuli type (audio)
-  cost <- data[10, "RT_md"] - data[16, "RT_md"]
-  # Find the first NA value in the 'cost_ben_val' column
-  first_na <- which(is.na(ATTENTION$cost_ben_val))[1]
-  
-  # Assign the 'cost' value to the first NA in the 'cost_ben_val' column
-  ATTENTION$cost_ben_val[first_na] <- cost
-  
-  # define the cost value, (incongruent - neutral trials) for the same stimuli type (visual)
-  cost <- data[11, "RT_md"] - data[17, "RT_md"]
-  # Find the first NA value in the 'cost_ben_val' column
-  first_na <- which(is.na(ATTENTION$cost_ben_val))[1]
-  
-  # Assign the 'cost' value to the first NA in the 'cost_ben_val' column
-  ATTENTION$cost_ben_val[first_na] <- cost
-  
-  # define the cost value, (incongruent - neutral trials) for the same stimuli type (audio.visual)
-  cost <- data[12, "RT_md"] - data[18, "RT_md"]
-  # Find the first NA value in the 'cost_ben_val' column
-  first_na <- which(is.na(ATTENTION$cost_ben_val))[1]
-  # Assign the 'cost' value to the first NA in the 'cost_ben_val' column
-  ATTENTION$cost_ben_val[first_na] <- cost
-  
-  
-  # define the benefit value, (neutral trials - congruent ) for the same stimuli type (audio)
-  benefit <- data[16, "RT_md"]  - data[13, "RT_md"]
-  # Find the first NA value in the 'cost_ben_val' column
-  first_na <- which(is.na(ATTENTION$cost_ben_val))[1]
-  
-  # Assign the 'benefit' value to the first NA in the 'cost_ben_val' column
-  ATTENTION$cost_ben_val[first_na] <- benefit
-  
-  # define the benefit value, ( neutral trials - congreunt ) for the same stimuli type (visual)
-  benefit <-  data[17, "RT_md"] - data[14, "RT_md"]
-  # Find the first NA value in the 'cost_ben_val' column
-  first_na <- which(is.na(ATTENTION$cost_ben_val))[1]
-  
-  # Assign the 'benefit' value to the first NA in the 'cost_ben_val' column
-  ATTENTION$cost_ben_val[first_na] <- benefit
-  
-  # define the benefit value, (neutral trials - congreunt) for the same stimuli type (audio.visual)
-  benefit <- data[18, "RT_md"] - data[15, "RT_md"]
-  # Find the first NA value in the 'cost_ben_val' column
-  first_na <- which(is.na(ATTENTION$cost_ben_val))[1]
-  # Assign the 'benefit' value to the first NA in the 'cost_ben_val' column
-  ATTENTION$cost_ben_val[first_na] <- benefit
-  
-  # neutral
-  # sett the next three equal to NA due to neutral - neutral is 0   neutral <- "NA"
-  neutral <- "NEUTRAL"
-  first_na <- which(is.na(ATTENTION$cost_ben_val))[1]
-  
-  # Assign the 'benefit' value to the first NA in the 'cost_ben_val' column
-  ATTENTION$cost_ben_val[first_na] <- neutral
-  
-  # neutral
-  # sett the next three equal to NA due to neutral - neutral is 0   neutral <- "NA"
-  neutral <- "NEUTRAL"
-  first_na <- which(is.na(ATTENTION$cost_ben_val))[1]
-  
-  # Assign the 'benefit' value to the first NA in the 'cost_ben_val' column
-  ATTENTION$cost_ben_val[first_na] <- neutral
-  
-  # neutral
-  # sett the next three equal to NA due to neutral - neutral is 0   neutral <- "NA"
-  neutral <- "NEUTRAL"
-  first_na <- which(is.na(ATTENTION$cost_ben_val))[1]
-  
-  # Assign the 'benefit' value to the first NA in the 'cost_ben_val' column
-  ATTENTION$cost_ben_val[first_na] <- neutral
+  #audio.visual cost VR
+  ATTENTION$cost_ben_val[ATTENTION$ID == i & ATTENTION$stimuli_type == "audio.visual" & ATTENTION$stimuli_compatibility =="congruent" & ATTENTION$condition == "VR"] <- ATTENTION$RT_md[ATTENTION$ID == i & ATTENTION$stimuli_type == "audio.visual" & ATTENTION$stimuli_compatibility == "neutral" & ATTENTION$condition == "VR"] - ATTENTION$RT_md[ATTENTION$ID == i & ATTENTION$stimuli_type == "audio.visual" & ATTENTION$stimuli_compatibility == "congruent" & ATTENTION$condition == "VR"]
+  #audio.visual PC
+  ATTENTION$cost_ben_val[ATTENTION$ID == i & ATTENTION$stimuli_type == "audio.visual" & ATTENTION$stimuli_compatibility =="congruent" & ATTENTION$condition == "PC"] <- ATTENTION$RT_md[ATTENTION$ID == i & ATTENTION$stimuli_type == "audio.visual" & ATTENTION$stimuli_compatibility == "neutral" & ATTENTION$condition == "PC"] - ATTENTION$RT_md[ATTENTION$ID == i & ATTENTION$stimuli_type == "audio.visual" & ATTENTION$stimuli_compatibility == "congruent" & ATTENTION$condition == "PC"]
   
 }
 
-# ConveRT_md the 'cost_ben_val' column of the 'ATTENTION' dataframe to numeric data type
-ATTENTION$cost_ben_val <- as.numeric(ATTENTION$cost_ben_val)
+#------------REACTIONAL TIME COEFFICIENT OF VARIANCE ---------------
 
-# Group the 'ATTENTION' dataframe by 'condition', 'stimuli_type', and 'cost_benefit' columns and
-# calculate summary statistics (mean and standard deviation) for the 'cost benefit values' column
+ATTENTION <- ATTENTION %>%
+  mutate(RTCV = RT_sd / RT)
+
+#-----------ACCURACY--------------------------
+
+ATTENTION$accuracy <- ATTENTION$corrects/16
+```
+
+
+# Descriptive Statistics 
+There are five main variables in this study: *Reaction Time Median, Reaction Time Coefficient of Variance, Accuarcy, Attentional Cost and Attentional Benefit*.  
+  
+<br>
+These variables will be analysed with the consideration of different factors. The descriptive statistics are therefore provided for the relevant factor levels.  
+The factor levels selected in these analyses will help us to understand the quality of responses based on the delivery of stimuli in different sensory modalities. 
+  
+*  **Reaction Time Median** will be compared between VR and PC across the stimuli type levels - auditory, visual and audio.visual.  
+*  **Reaction Time Coefficient of Variance** will be compared between VR and PC only  
+*  **Accuracy** will be compared between VR and PC across the stimuli type levels - auditory, visual and audio.visual.  
+*  **Attentional Cost** and **Attentional Benefit** will be compared between VR and PC and across the three multisensory levels - auditory, visual and audio-visual.  
+  
+<br>
+  
+**REACTION TIME MEDIAN**  
+Note: n=57 because for each of the 19 participants, there were 3 RT median values - one from the congruent, one from the incongrunt and one from the neutral condition.  
+```{r descriptives RT_md}
+
+# Reaction Time Median
 ATTENTION %>%
-  group_by(condition, stimuli_type , cost_benefit) %>%
-  get_summary_stats(cost_ben_val, type = "mean_sd")
+  group_by(condition, stimuli_type) %>%
+  get_summary_stats(RT_md, type = "mean_sd")
+```
+  
+**REACTION TIME COEFFICIENT OF COVARIANCE**  
+Note: n=171 because for each of the 19 participants, there were 9 RTCV values - from 3 sensory levels (audio, visual and audio-visual) x 3 congruency levels (incongruent, congruent and neutral).  
+```{r descriptives RTCV}
 
-# remove all objects except for mydata and mylist
-rm(list = setdiff(ls(), c("ATTENTION")))
+# Reaction Time Coefficient of Covariance
+ATTENTION %>%
+  group_by(condition) %>%
+  get_summary_stats(RTCV, type = "mean_sd")
+```
+
+**ACCURACY**  
+Note: n=57 because for each of the 19 participants, there were 3 RT median values - one from the congruent, one from the incongrunt and one from the neutral condition.
+```{r descriptives_accuracy}
+
+# Reaction Time Median
+ATTENTION %>%
+  group_by(condition, stimuli_type) %>%
+  get_summary_stats(accuracy, type = "mean_sd")
+```
+  
+**ATTENTIONAL COST**  
+Note: n=19 because for each of the 19 participants, there is only one attentional cost value calculated from RT medians in incongruent and neutral trials. 
+```{r descriptives_AC}
+
+ATTENTION %>%
+  filter(cost_benefit == "cost") %>%
+  group_by(condition, stimuli_type) %>%
+  get_summary_stats(cost_ben_val, type = "mean_sd")
+```
+  
+**ATTENTIONAL BENEFIT**  
+Note: n=19 because for each of the 19 participants, there is only one attentional benefit value calculated from RT medians in incongruent and neutral trials. 
+```{r descriptives_AB}
+
+ATTENTION %>%
+  filter(cost_benefit == "benefit") %>%
+  group_by(condition, stimuli_type) %>%
+  get_summary_stats(cost_ben_val, type = "mean_sd")
+```
+
+# Assumption Checks  
+
+In order to detect statsitically significant effects, we want to run either ANOVA or linear model tests. Both have similar assumption of normal distribution, homogeneity of variance and spehricity (particularly important for ANOVAs). However, a linear mixed model might be more robust in the face of violation of these assumptions https://doi.org/10.1111/2041-210X.13434   
+  
+The assumptions are checked for all variables included in the analyses of this project on the same levels as the descriptive results presented above.  
+  
+* **Normal distribution** is assessed using skewness and kurtosis values. Values at z-score > 1.96 or < -1.96 are interpreted as indicative of violation of normality.  
+* **Homogeneity of variance** is assessed using the Levene's test. Violation of the assumption is detected with p-value <0.05.  
+* **Sphericity** is assessed using the Mauchly's test.Violation of the assumption is detected with p-value <0.05.  
+  
+  
+#### **NORMAL DISTRIBUTION ASSESSMENT**  
+The results show that there are violations of the normality assumption for all variables.   
+
+```{r distribution assessment}
+
+#----NORMALITY FOR RT_md ------
+#Info about skreness and kurtosis assessments: https://www.discoveringstatistics.com/repository/exploringdata.pdf 
+#Extract Skewness and Kurtosis together with Standard Errors
+y <- descriptives(formula = RT_md ~ condition:stimuli_type, ATTENTION, skew = T, kurt = T) 
+
+z <- y$descriptives$asDF #save as a dataframe but note it will save all values as separate columns
+
+skew <-  z %>%
+  dplyr::select(contains("RT_md[skew")) #select all skewness values - should be 6 for 3x of trial compatibility types per condition PC and VR
+
+kurt <-  z %>%
+  dplyr::select(contains("RT_md[kurt")) #select all kurtosis values - should be 6 for 3x of trial compatibility types per condition PC and VR
+
+
+normality <- data.frame(matrix(nrow = length(t(skew)))) #make a dataframe to store the skewness and kurtosis values
+normality$skew_RT_md <- t(skew)[1:length(skew)] #paste the skewness and kurtosis values
+normality$kurt_RT_md <- t(kurt)[1:length(kurt)]
+
+#extract the SE for skewness and kurtosis - should be the same for all trial types so only one is enough
+se_skew <- z %>% 
+  dplyr::select(contains("RT_md[seSkew")) 
+se_skew <- se_skew[1,1]
+
+se_kurt <- z %>%
+  dplyr::select(contains("RT_md[seKurt"))
+se_kurt <- se_kurt[1,1]
+
+# calculate the skewness and kurtosis z-scores by dividing the skewness and kurtosis values by their respective SEs
+normality$skew_z_RT_md <- normality$skew_RT_md/se_skew 
+normality$kurt_z_RT_md <- normality$kurt_RT_md/se_kurt
+# make the data frame neat
+normality <- normality[,-1] #delete the first redundant column
+myRownames <- colnames(skew) #extract column names from one of the variables to use them as rownames
+myRownames <- gsub("\\[|]", "",  # get rid of redundant information
+              gsub("RT_md", "",
+              gsub("skew", "", myRownames)))
+rownames(normality) <- myRownames
+
+rm(y, z, skew, kurt, se_skew, se_kurt) #clean objects for reuse 
+
+
+#----NORMALITY FOR RTCV ------
+#Extract Skewness and Kurtosis together with Standard Errors
+y <- descriptives(formula = RTCV ~ condition, ATTENTION, skew = T, kurt = T) 
+
+z <- y$descriptives$asDF #save as a dataframe but note it will save all values as separate columns
+
+skew <-  z %>%
+  dplyr::select(contains("RTCV[skew")) #select all skewness values - should be 6 for 3x of trial compatibility types per condition PC and VR
+
+kurt <-  z %>%
+  dplyr::select(contains("RTCV[kurt")) #select all kurtosis values - should be 6 for 3x of trial compatibility types per condition PC and VR
+
+
+normality_RTCV <- data.frame(matrix(nrow = length(t(skew)))) #make a dataframe to store the skewness and kurtosis values
+normality_RTCV$skew <- t(skew)[1:length(skew)] #paste the skewness and kurtosis values
+normality_RTCV$kurt <- t(kurt)[1:length(kurt)]
+
+#extract the SE for skewness and kurtosis - should be the same for all trial types so only one is enough
+se_skew <- z %>% 
+  dplyr::select(contains("RTCV[seSkew")) 
+se_skew <- se_skew[1,1]
+
+se_kurt <- z %>%
+  dplyr::select(contains("RTCV[seKurt"))
+se_kurt <- se_kurt[1,1]
+
+# calculate the skewness and kurtosis z-scores by dividing the skewness and kurtosis values by their respective SEs
+normality_RTCV$skew_z <- normality_RTCV$skew/se_skew 
+normality_RTCV$kurt_z <- normality_RTCV$kurt/se_kurt
+# make the data frame neat
+normality_RTCV <- normality_RTCV[,-1] #delete the first redundant column
+myRownames <- colnames(skew) #extract column names from one of the variables to use them as rownames
+myRownames <- gsub("\\[|]", "",  # get rid of redundant information
+              gsub("RTCV", "",
+              gsub("skew", "", myRownames)))
+rownames(normality_RTCV) <- myRownames
+
+rm(y, z, skew, kurt, se_skew, se_kurt) #clean objects for reuse 
+
+#----NORMALITY FOR accuracy ------
+
+y <- descriptives(formula = accuracy ~ condition:stimuli_type, ATTENTION, skew = T, kurt = T) 
+
+z <- y$descriptives$asDF
+
+skew <-  z %>%
+  dplyr::select(contains("accuracy[skew"))
+
+kurt <-  z %>%
+  dplyr::select(contains("accuracy[kurt"))
+
+
+normality$skew_accuracy <- t(skew)[1:length(skew)]
+normality$kurt_accuracy <- t(kurt)[1:length(kurt)]
+
+se_skew <- z %>%
+  dplyr::select(contains("accuracy[seSkew"))
+se_skew <- se_skew[1,1]
+
+se_kurt <- z %>%
+  dplyr::select(contains("accuracy[seKurt"))
+se_kurt <- se_kurt[1,1]
+
+normality$skew_z_accuracy <- normality$skew_accuracy/se_skew
+normality$kurt_z_accuracy <- normality$kurt_accuracy/se_kurt
+
+rm(y, z, skew, kurt, se_skew, se_kurt, myRownames)
+
+
+#----NORMALITY FOR attentional cost  ------
+#Extract Skewness and Kurtosis together with Standard Errors
+y <- descriptives(formula = cost_ben_val ~ condition:stimuli_type:cost_benefit, ATTENTION, skew = T, kurt = T) 
+
+z <- y$descriptives$asDF #save as a dataframe but note it will save all values as separate columns
+
+skew <-  z %>%
+  dplyr::select(contains("cost_ben_val[skew") & contains("cost]")) #select all skewness values - should be 6 for 3x of trial sensory types per condition PC and VR
+
+kurt <-  z %>%
+  dplyr::select(contains("cost_ben_val[kurt") & contains("cost]")) #select all kurtosis values - should be 6 for 3x of trial sensory types per condition PC and VR
+
+
+normality_cost_ben <- data.frame(matrix(nrow = length(t(skew)))) #make a dataframe to store the skewness and kurtosis values
+normality_cost_ben$skew_cost <- t(skew)[1:length(skew)] #paste the skewness and kurtosis values
+normality_cost_ben$kurt_cost <- t(kurt)[1:length(kurt)]
+
+#extract the SE for skewness and kurtosis - should be the same for all trial types so only one is enough
+se_skew <- z %>% 
+  dplyr::select(contains("cost_ben_val[seSkew")) 
+se_skew <- se_skew[1,1]
+
+se_kurt <- z %>%
+  dplyr::select(contains("cost_ben_val[seKurt"))
+se_kurt <- se_kurt[1,1]
+
+# calculate the skewness and kurtosis z-scores by dividing the skewness and kurtosis values by their respective SEs
+normality_cost_ben$skew_z_cost <- normality_cost_ben$skew_cost/se_skew 
+normality_cost_ben$kurt_z_cost <- normality_cost_ben$kurt_cost/se_kurt
+# make the data frame neat
+normality_cost_ben <- normality_cost_ben[,-1] #delete the first redundant column
+myRownames <- colnames(skew) #extract column names from one of the variables to use them as rownames
+myRownames <- gsub("\\[|]", "",  # get rid of redundant information
+              gsub("cost_ben_val", "",
+              gsub("skew", "", myRownames)))
+rownames(normality_cost_ben) <- myRownames
+
+rm(y, z, skew, kurt, se_skew, se_kurt) #clean objects for reuse 
+
+
+#----NORMALITY FOR attentional benefit  ------
+#Extract Skewness and Kurtosis together with Standard Errors
+y <- descriptives(formula = cost_ben_val ~ condition:stimuli_type:cost_benefit, ATTENTION, skew = T, kurt = T) 
+
+z <- y$descriptives$asDF #save as a dataframe but note it will save all values as separate columns
+
+skew <-  z %>%
+  dplyr::select(contains("cost_ben_val[skew") & contains("benefit]")) #select all skewness values - should be 6 for 3x of trial sensory types per condition PC and VR
+
+kurt <-  z %>%
+  dplyr::select(contains("cost_ben_val[kurt") & contains("benefit]")) #select all kurtosis values - should be 6 for 3x of trial sensory types per condition PC and VR
+
+
+normality_cost_ben$skew_ben <- t(skew)[1:length(skew)] #paste the skewness and kurtosis values
+normality_cost_ben$kurt_ben <- t(kurt)[1:length(kurt)]
+
+#extract the SE for skewness and kurtosis - should be the same for all trial types so only one is enough
+se_skew <- z %>% 
+  dplyr::select(contains("cost_ben_val[seSkew")) 
+se_skew <- se_skew[1,1]
+
+se_kurt <- z %>%
+  dplyr::select(contains("cost_ben_val[seKurt"))
+se_kurt <- se_kurt[1,1]
+
+# calculate the skewness and kurtosis z-scores by dividing the skewness and kurtosis values by their respective SEs
+normality_cost_ben$skew_z_ben <- normality_cost_ben$skew_ben/se_skew 
+normality_cost_ben$kurt_z_ben <- normality_cost_ben$kurt_ben/se_kurt
+
+
+rm(y, z, skew, kurt, se_skew, se_kurt) #clean objects  
+
+
+
+#-----TABLES--------
+#Make a table with the skewness and kurtosis z-scores to check whether any values are larger that 1.96 or smaller than -1.96
+kable(normality[,c(3:4, 7:8)], caption = "Skewness and kurtosis z-values for RT medians and accuracy variables")
+kable(normality_RTCV[,c(3:4)], caption = "Skewness and kurtosis values for RTCV")
+kable(normality_cost_ben[,c(3:4, 7:8)], caption = "Skewness and kurtosis z-values for attentional cost and benefits")
+```
+  
+#### **HOMOGENEITY OF VARIANCE ASSUMPTION**  
+Only the attentional benefit variable in audio condition does not meet the assumption of homogeneity of variance 
+
+
+**REACTION TIME MEDIANS**  
+```{r homogeneity of variance RT_md}
+#-------Levene's Test ----------
+# We are using the Levene's test to check for differences in variance between the two groups. This is to ensure that the assumption of homogeneity of variance is met.
+
+#----Reaction Time Meadian----
+
+ATTENTION %>%
+  group_by(stimuli_type) %>%
+  levene_test(RT_md ~ condition)
+```
+  
+**REACTION TIME COEFFICIENT OF VARIANCE**  
+```{r homogeneity of variance rtcv}
+#----Reaction Time Coefficient of Variance----
+levene_test(ATTENTION, RTCV ~ condition)
+```
+  
+**ACCURACY**  
+```{r homogeneity of variance accuracy}
+#----Accuracy----
+ATTENTION %>%
+  group_by(stimuli_type) %>%
+  levene_test(accuracy ~ condition)
+```
+  
+**ATTENTIONAL COST**  
+```{r homogeneity of variance AC}
+
+#----Attentional Cost----
+ATTENTION %>%
+  filter(cost_benefit == "cost") %>%
+  group_by(stimuli_type) %>%
+  levene_test(cost_ben_val ~ condition)
+```  
+
+**ATTENTIONAL BENEFIT**  
+```{r homogeneity of variance AB}
+#----Attentional Benefit----
+ATTENTION %>%
+  filter(cost_benefit == "benefit") %>%
+  group_by(stimuli_type) %>%
+  levene_test(cost_ben_val ~ condition)
+
+```
+  
+#### **SPHERICITY ASSUMPTION**  
+This does not need to be measured for RTCV because it only has two levels (VR and PC).  
+Otherwise, none of the remaining variables violate the sphericity assumption. 
+  
+**REACTION TIME MEDIAN**
+```{r sph ass RT_md}
+
+mean_RT <- as.data.frame(ATTENTION %>%
+  group_by(stimuli_type, ID, condition) %>%
+  summarise(mean_RT_type=mean(RT_md)))
+
+
+
+anova_test(mean_RT, dv = mean_RT_type, wid = ID, within = c(condition, stimuli_type))
 
 ```
 
-```{r cost benefit statistics}
-# group the data by both "cost_benefit" and "stimuli_type" and perform a paired t-test on the "cost benefit value"
-# Next, we compare the condition and adjust the p-values using the Bonferroni correction.
-# this was done to find diffrences between the conditions. based on the stimuli type.
-ATTENTION %>%
-  filter(!is.na(cost_ben_val)) %>%
-  group_by(cost_benefit, stimuli_type) %>%
-  t_test(cost_ben_val ~ condition ,
-         p.adjust.method = "bonferroni",
-         paired = T)
+**ACCURACY**
+```{r sph ass acc}
 
-# group the data by both condition and cost benefit. and perform a paried t-test, on the cost benefit value.
-# corrected with bonferoni.
-# this was done to chek for in condition diffrences between the stimuly type
-ATTENTION %>%
-  filter(!is.na(cost_ben_val)) %>%
-  group_by(cost_benefit, condition) %>%
-  t_test(cost_ben_val ~ stimuli_type ,
-         p.adjust.method = "bonferroni",
-         paired = T)
+mean_accuracy <- as.data.frame(ATTENTION %>%
+  group_by(stimuli_type, ID, condition) %>%
+  summarise(mean_acc_type=mean(accuracy)))
 
-# Additionally, we calculate the means and standard deviations of cost benefit results for each combination of "cost_benefit" and "stimuli_type".
-# 
+
+
+anova_test(mean_accuracy, dv = mean_acc_type, wid = ID, within = c(condition, stimuli_type))
+
+```
+
+**ATTENTIONAL COST**
+```{r sph ass att cost}
+
+mean_att_cost <- as.data.frame(ATTENTION %>%
+                                 filter(cost_benefit == "cost") %>%
+                                 group_by(stimuli_type, ID, condition) %>%
+                                 summarise(mean_att_cost_type=mean(cost_ben_val)))
+
+
+
+anova_test(mean_att_cost, dv = mean_att_cost_type, wid = ID, within = c(condition, stimuli_type))
+
+```
+
+**ATTENTIONAL BENEFIT**
+```{r sph ass att ben}
+
+mean_att_ben <- as.data.frame(ATTENTION %>%
+                                 filter(cost_benefit == "benefit") %>%
+                                 group_by(stimuli_type, ID, condition) %>%
+                                 summarise(mean_att_ben_type=mean(cost_ben_val)))
+
+
+
+anova_test(mean_att_ben, dv = mean_att_ben_type, wid = ID, within = c(condition, stimuli_type))
+
+```
+  
+  
+# **INFERENTIAL STATISTICS & PLOTS**  
+The plots are violin plots with jittered individual data points. The mean is marked with the black dot and confidence intervals of the mean are marked with uppoer and lower range lines. 
+The only difference is the plotting of the attentional cost and benefit values which use bar plots for direct comparison with the previous results on a similar paradigm: https://doi.org/10.1016/j.cognition.2019.01.013  
+  
+Linear Mixed Effects Models are used to test the effects of condition (VR and PC) and stimuli type (auditory, audio.visual and visual) on the outcome variables. ANOVAs were not suitable because of the violation of normal distribution of the data. LMs are more robust in the case of violation of this assumption. They rely on regression statistics rather than condition means.  
+Because of the small sample size which could undermine the results of a linear model, I also tried to run a Bayesian Mixed model using the package Bayes Factor. There seems to be a bug in the package as it did not work. The error was related to a broken loop within the package's calculation. The same package is implemented in the GUI statistics program JASP. I imported the data into that program to double check the functionality of the package for the current set up. The program ran a linear mixed model just fine but it also gave errors when trying to compute the Bayesian alternative. 
+  
+**REACTION TIME MEDIAN**  
+Here there is a significant effect of condition on RT median with p<.0001. 
+
+```{r resutls_RT_md}
+mean_RT$stimuli_type <- as.factor(mean_RT$stimuli_type)
+mean_RT$condition <- as.factor(mean_RT$condition)
+mean_RT$ID <- as.factor(mean_RT$ID)
+
+mean_RT2 <- mean_RT %>%
+  group_by(stimuli_type, condition) %>%
+  summarise(sd = sd(mean_RT_type),
+            mean_RT_type = mean(mean_RT_type))
+mean_RT2 <- mean_RT2 %>% arrange(mean_RT2$condition)
+
+
+p1 <- ggplot(mean_RT, aes(x = stimuli_type, y = mean_RT_type)) +
+  geom_violin(aes(fill = stimuli_type), alpha = 0.4, trim = FALSE, color = NA) + #show.legend = FALSE,
+  geom_jitter(aes(color = stimuli_type), position = position_jitter(0.2), alpha = 0.8) + 
+  facet_wrap(~condition) +
+  labs(x = "Stimuli Type", y = "Search Time", color = "Stimuli Type") +
+  theme_bw() +
+  guides(fill = FALSE) +
+  scale_color_manual(values = c("#0072B2", "#E69F00", "#009E73")) +
+  scale_fill_manual(values = c("#0072B2", "#E69F00", "#009E73")) +
+  theme(legend.position="none")
+
+p1 <- p1 + geom_pointrange(aes(ymin = (mean_RT_type - (sd * 1.96)/sqrt(50)), ymax = (mean_RT_type + (sd * 1.96)/sqrt(50))), data = mean_RT2)
+
+p1
+
+#resources: https://people.math.aau.dk/~rw/Undervisning/PhDMixedModels/Slides/lektion2.pdf 
+m1 = lmer(mean_RT_type ~ condition * stimuli_type + (1|ID), data=mean_RT)  
+a1 <- anova(m1, type=c("III")) #type three is chosen in case there might be significant interactions
+a1
+
+eta_squared(m1, partial = TRUE)
+omega_squared(m1, partial = TRUE)
+
+
+colnames(a1) <- c('sumSq', 'meanSq', 'numDf', 'denDf', 'F', 'Pr' )
+
+pvalue <- as.numeric(format(a1$Pr, scientific = FALSE)[1])*5 #Had to assign a separate object because otherwise it still prints it as exponential in the output document
+
+```
+Bonfferroni corrected p-values:  
+  
+*  Condition Effect: `r format(pvalue, scientific = FALSE)` **(significant)** 
+*  Sensory Distractor Effect: `r as.numeric(format(a1$Pr, scientific = FALSE)[2])*5`
+*  Interaction Effect: `r as.numeric(format(a1$Pr, scientific = FALSE)[3])*5`  
+
+**REACTION TIME COEFFICIENT OF VARIANCE**  
+Here the effect of condition is non-significant.  
+
+```{r resutls_RTCV}
+mean_RTCV <- as.data.frame(ATTENTION %>%
+  group_by(ID, condition) %>%
+  summarise(mean_RTCV_type=mean(RTCV)))
+
+mean_RT$condition <- as.factor(mean_RT$condition)
+mean_RT$ID <- as.factor(mean_RT$ID)
+
+mean_RTCV2 <- mean_RTCV %>%
+  group_by(condition) %>%
+  summarise(sd = sd(mean_RTCV_type),
+            mean_RTCV_type = mean(mean_RTCV_type))
+
+
+p2 <- ggplot(mean_RTCV, aes(x = condition, y = mean_RTCV_type)) +
+  geom_violin(aes(fill = condition), alpha = 0.4, trim = FALSE, color = NA) + #show.legend = FALSE,
+  geom_jitter(aes(color = condition), position = position_jitter(0.2), alpha = 0.8) + 
+  labs(x = "Environment", y = "RT Variability", color = "Condition") +
+  theme_bw() +
+  guides(fill = FALSE) +
+  scale_color_manual(values = c("#0072B2", "#E69F00")) +
+  scale_fill_manual(values = c("#0072B2", "#E69F00")) +
+  theme(legend.position="none")
+
+p2 <- p2 + geom_pointrange(aes(ymin = (mean_RTCV_type - (sd * 1.96)/sqrt(50)), ymax = (mean_RTCV_type + (sd * 1.96)/sqrt(50))), data = mean_RTCV2)
+
+p2
+
+
+m2 = lmer(mean_RTCV_type ~ condition + (1|ID), data=mean_RTCV)  
+a2 <- anova(m2, type=c("III")) 
+a2
+
+eta_squared(m2, partial = TRUE)
+omega_squared(m2, partial = TRUE)
+
+colnames(a2) <- c('sumSq', 'meanSq', 'numDf', 'denDf', 'F', 'Pr' )
+
+
+```
+Bonfferroni corrected p-values:  
+  
+* Condition Effect: `r as.numeric(format(a2$Pr, scientific = FALSE)[1])*5`   
+
+**ACCURACY**  
+Here there is a significant effect of condition.  
+The follow-up post-hoc test using the Tukey method shows a significant difference between audio & audio.visual conditions and audio & visual conditions but not between visual and audio.visual. This is irrespective of condition (VR vs PC).
+
+```{r resutls_ACC}
+mean_accuracy$stimuli_type <- as.factor(mean_accuracy$stimuli_type)
+mean_accuracy$condition <- as.factor(mean_accuracy$condition)
+mean_accuracy$ID <- as.factor(mean_accuracy$ID)
+
+mean_accuracy2 <- mean_accuracy %>%
+  group_by(stimuli_type, condition) %>%
+  summarise(sd = sd(mean_acc_type),
+            mean_acc_type = mean(mean_acc_type))
+mean_accuracy2 <- mean_accuracy2 %>% arrange(mean_accuracy2$condition)
+
+
+p3 <- ggplot(mean_accuracy, aes(x = stimuli_type, y = mean_acc_type)) +
+  geom_violin(aes(fill = stimuli_type), alpha = 0.4, trim = FALSE, color = NA) + #show.legend = FALSE,
+  geom_jitter(aes(color = stimuli_type), position = position_jitter(0.2), alpha = 0.8) + 
+  facet_wrap(~condition) +
+  labs(x = "Stimuli Type", y = "Accuracy", color = "Stimuli Type") +
+  theme_bw() +
+  guides(fill = FALSE) +
+  scale_color_manual(values = c("#0072B2", "#E69F00", "#009E73")) +
+  scale_fill_manual(values = c("#0072B2", "#E69F00", "#009E73")) +
+  theme(legend.position="none")
+
+p3 <- p3 + geom_pointrange(aes(ymin = (mean_acc_type - (sd * 1.96)/sqrt(50)), ymax = (mean_acc_type + (sd * 1.96)/sqrt(50))), data = mean_accuracy2)
+
+p3
+
+
+m3 = lmer(mean_acc_type ~ condition * stimuli_type + (1|ID), data=mean_accuracy)  
+a3 <- anova(m3, type=c("III")) 
+a3
+
+eta_squared(m3, partial = TRUE)
+omega_squared(m3, partial = TRUE)
+
+colnames(a3) <- c('sumSq', 'meanSq', 'numDf', 'denDf', 'F', 'Pr' )
+
+pvalue2 <- as.numeric(format(a3$Pr, scientific = FALSE)[2])*5
+
+#Posthoc with Tukey method
+
+posthoc <- emmeans(m3, pairwise ~ stimuli_type)
+posthoc
+
+#Cohen's d effect size
+eff_size(posthoc, sigma = sigma(m3), edf = 90)
+
+```
+Bonfferroni corrected p-values:  
+  
+*  Condition Effect: `r as.numeric(format(a3$Pr, scientific = FALSE)[1])*5`
+*  Sensory Distractor Effect: `r format(pvalue2, scientific = FALSE)` **(significant)** 
+*  Interaction Effect: `r as.numeric(format(a3$Pr, scientific = FALSE)[3])*5`  
+  
+For the post-hoc analysis, the p-values are already adjusted.
+  
+  
+**ATTENTIONAL COST AND BENEFIT**  
+None of the effects are significant here.
+
+```{r results_cost_benefit}
+
 my_colors <- c("#0072B2", "#D55E00")
 summary_stats <- ATTENTION %>%
   group_by(condition,cost_benefit,stimuli_type ) %>%
   get_summary_stats(cost_ben_val, type = "mean_sd")
   
-ggplot(summary_stats, aes(x = stimuli_type, y = mean, fill = cost_benefit)) +
+p4 <- ggplot(summary_stats, aes(x = stimuli_type, y = mean, fill = cost_benefit)) +
   geom_bar(stat = "identity", position = "dodge") +
   facet_wrap(~condition) +
   scale_fill_manual(values = my_colors) +
-  labs(x = "Stimuli Type", y = "search time difffrence", fill = "cost/benefit")
+  labs(x = "Stimuli Type", y = "Reaction Time Difffrence", fill = "Attention")
 
+p4
 
-```
+#--------ATTNETIONAL COST--------------
 
-```{r stattistics}
-# statistics
-# all permutations and between condition
-ATTENTION %>%
-  group_by(stimuli_type,stimuli_compatibility) %>%
-  t_test(RT_md ~ condition,
-         p.adjust.method = "bonferroni",
-         paired = T)
+mean_att_cost$stimuli_type <- as.factor(mean_att_cost$stimuli_type)
+mean_att_cost$condition <- as.factor(mean_att_cost$condition)
+mean_att_cost$ID <- as.factor(mean_att_cost$ID)
 
-ATTENTION %>%
-  group_by(stimuli_type, stimuli_compatibility, condition) %>%
-  get_summary_stats(RT_md, type = "mean_sd")
-# simple overall t test to see the performance.
-ATTENTION %>% 
-  t_test(RT_md ~ condition,
-         p.adjust.method = "bonferroni",
-         paired = T)
+m4 = lmer(mean_att_cost_type ~ condition * stimuli_type + (1|ID), data=mean_att_cost)  
+a4 <- anova(m4, type=c("III")) 
+a4
 
-ATTENTION %>%
-  group_by(condition) %>%
-  get_summary_stats(RT_md, type = "mean_sd")
+eta_squared(m4, partial = TRUE)
+omega_squared(m4, partial = TRUE)
 
+colnames(a4) <- c('sumSq', 'meanSq', 'numDf', 'denDf', 'F', 'Pr' )
+#--------ATTNETIONAL BENEFIT--------------
 
-# within stim type
-view(ATTENTION %>%
-  group_by(condition) %>%
-  t_test(RT_md ~stimuli_type ,
-         p.adjust.method = "bonferroni",
-         paired = T))
-ATTENTION %>%
-  group_by(condition,stimuli_type) %>%
-  get_summary_stats(RT_md, type = "mean_sd")
+mean_att_ben$stimuli_type <- as.factor(mean_att_ben$stimuli_type)
+mean_att_ben$condition <- as.factor(mean_att_ben$condition)
+mean_att_ben$ID <- as.factor(mean_att_ben$ID)
 
+m5 = lmer(mean_att_ben_type ~ condition * stimuli_type + (1|ID), data=mean_att_ben)  
+a5 <- anova(m5, type=c("III")) 
+a5
 
-# within con compatibility
-ATTENTION %>%
-  group_by(condition) %>%
-  t_test(RT_md ~stimuli_compatibility ,
-         p.adjust.method = "bonferroni",
-         paired = T)
-ATTENTION %>%
-  group_by(condition,stimuli_compatibility) %>%
-  get_summary_stats(RT_md, type = "mean_sd")
+eta_squared(m5, partial = TRUE)
+omega_squared(m5, partial = TRUE)
 
-```
+colnames(a5) <- c('sumSq', 'meanSq', 'numDf', 'denDf', 'F', 'Pr' )
 
+``` 
 
-```{r plots }
-ggplot(ATTENTION, aes(x = stimuli_type, y = RT_md, fill = stimuli_compatibility)) +
-  geom_violin(aes(color = stimuli_compatibility), trim = FALSE) + 
-  geom_jitter(aes(color = stimuli_compatibility), position = position_jitter(0.7), alpha = 0.6) + 
-  facet_wrap(~condition) +
-  labs(x = "Stimuli Type", y = "Search Time", color = "Stimuli Compatibility") +
-  theme_bw() +
-  guides(fill = FALSE) +
-  scale_color_manual(values = c("#0072B2", "#E69F00", "#009E73")) +
-  scale_fill_manual(values = c("#0072B2", "#E69F00", "#009E73")) +
-  theme(legend.position = "bottom", legend.title = element_text(face = "bold"), 
-        panel.spacing.x = unit(0.5, "cm"))
-
-RT
-
-
-
-# Calculate the mean RT for each combination of stimuli type, compatibility, and condition
-mean_RT <- aggregate(RT_md ~ stimuli_type + stimuli_compatibility + condition, data = ATTENTION, mean)
-# Define custom color palette
-my_colors <- c("#0072B2", "#E69F00", "#009E73", "#F0E442")
-# Create the plot
-ggplot(mean_RT, aes(x = stimuli_type, y = RT_md, fill = stimuli_compatibility)) +
-  geom_bar(stat = "identity", position = position_dodge(), alpha = 0.8) + 
-  facet_wrap(~condition) +
-  labs(x = "Stimuli Type", y = "Mean search time", fill = "Stimuli Compatibility") +
-  theme_bw() + # Set the theme to black and white
-  guides(fill = guide_legend(nrow = 2, byrow = TRUE, title.position = "top", title.hjust = 0.5,
-                              keywidth = unit(1, "cm"), keyheight = unit(0.5, "cm"),
-                              label.position = "right", label.hjust = 0, label.vjust = 0.5,
-                              label.theme = element_text(size = 8),
-                              reverse = TRUE)) + # Add the legend with custom formatting
-  scale_fill_manual(values = my_colors) # Set the custom colors for the legend
-
-
-## for my presentation: rather than the violin .> 
-mean_RT <- aggregate(RT_md ~ stimuli_type + stimuli_compatibility + condition, data = ATTENTION, mean)
-# Define the colors for each condition
-my_colors <- c("#0072B2", "#D55E00")
-# Create the plot with fill based on condition
-ggplot(mean_RT, aes(x = stimuli_type, y = RT_md, fill = condition)) +
-  geom_bar(stat = "identity", position = position_dodge(), alpha = 0.8) + 
-  facet_wrap(~stimuli_compatibility) +
-  labs(x = "Stimuli Type", y = "Mean RT", fill = "Stimuli Compatibility")  + # Set the theme to black and white
-  guides(fill = guide_legend(title = "Condition", title.position = "top")) + # Add legend with title on top
-  scale_fill_manual(values = my_colors) + theme_bw()
-
-
-
-
-my_colors <- c("#0072B2", "#D55E00")
-# Create the plot with fill based on condition and facet by condition
-ggplot(mean_RT, aes(x = stimuli_type, y = RT_md, fill = condition)) +
-  geom_bar(stat = "identity", position = position_dodge()) +
-  labs(x = "Stimuli Type", y = "mean search time", fill = "Stimuli Compatibility") +
-  scale_fill_manual(values = my_colors) + 
-  facet_grid(. ~ condition, scales = "free") + # facet by condition
-  theme_bw()
-
-
-
-
-
-```
-
-```{r Response Time Coefficient of Variability (RTCV)}
-# The Response Time Coefficient of Variability (RTCV) is a measure of the variability in response times for a given task or stimulus. It is calculated as the ratio of the standard deviation of response times to the mean response time, expressed as a percentage.
-# The formula for calculating RTCV is:
-# RTCV = (standard deviation of response times / mean response time) x 100%
-# A higher RTCV indicates that response times are more variable or inconsistent, while a lower RTCV indicates more consistent or predictable response times.
-
-RTCV_table <- ATTENTION %>%
-  group_by(condition, stimuli_type) %>%
-  get_summary_stats(RT, type = "mean_sd") %>%
-  mutate(RTCV = sd / mean * 100)
-
-RTCV_table_total <- ATTENTION %>%
-  group_by(condition) %>%
-  get_summary_stats(RT, type = "mean_sd") %>%
-  mutate(RTCV = sd / mean * 100)
-
-RTCV_table
-RTCV_table_total
-```
+Bonfferroni corrected p-values for COST:  
+  
+*  Condition Effect: `r as.numeric(format(a4$Pr, scientific = FALSE)[1])*5` 
+*  Sensory Distractor Effect: `r as.numeric(format(a4$Pr, scientific = FALSE)[2])*5`
+*  Interaction Effect: `r as.numeric(format(a4$Pr, scientific = FALSE)[3])*5` 
+  
+Bonfferroni corrected p-values for BENEFIT:  
+  
+*  Condition Effect: `r as.numeric(format(a5$Pr, scientific = FALSE)[1])*5` 
+*  Sensory Distractor Effect: `r as.numeric(format(a5$Pr, scientific = FALSE)[2])*5`
+*  Interaction Effect: `r as.numeric(format(a5$Pr, scientific = FALSE)[3])*5`  

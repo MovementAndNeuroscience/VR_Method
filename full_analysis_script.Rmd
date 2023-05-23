@@ -66,12 +66,12 @@ The following analysis steps are included:
 
 
 # Set working directory
-setwd(data_path_VR)
+setwd("/Users/rasmus/Desktop/VR_Method")
 
 # Look in the directory and search for CSV files.
 #myList <- list.dirs(path = "/Users/rasmus/Desktop/VR_Method/RAW VR")[-1]
-myList <- list.dirs(path = "~/6. VR Study/VR_Method/VR_Method/RAW VR")[-1] #not quite good to name a list "list" because it might get confusing in R at some point, so I changed it to myList, [-1] because the first position listed is the main folder which is not needed here 
-myFolders <- list.dirs(path ="~/6. VR Study/VR_Method/VR_Method/RAW VR", full.names = FALSE)[-1]
+myList <- list.dirs(path = "/Users/rasmus/Desktop/VR_Method/RAW VR")[-1] #not quite good to name a list "list" because it might get confusing in R at some point, so I changed it to myList, [-1] because the first position listed is the main folder which is not needed here 
+myFolders <- list.dirs(path ="/Users/rasmus/Desktop/VR_Method/RAW VR", full.names = FALSE)[-1]
 
 #Create and empty data frame to extract the data
 #The data frame includes columns for mean RTs, RT SDs, median RTs and Accuracy including correct and missed trials. These are extracted for three multisensory modalities (auditory, visual and audio-visual) and three congruency types (congruent, incongruent and neutral). So there are 9 types of trials (3x3) and each type of trial has mean RT, RT SD and Accuracy extracted (9 x 3) resulting in 46 data columns. For Reaction time data - only correct trials are used
@@ -101,7 +101,8 @@ for (i in 1:length(myList))
   colnames(myData) <- header 
   
   # Extract Participants number
-  DF$id[i] <- abs(parse_number(myFolders[i])) # extract participant number from the file name
+  participant_number <- sub(".*?(\\d+).*", "\\1", myList[i])# Essentially, this pattern captures the sequence of digits within the file name and ignores any other characters before or after the digits.
+  DF$id[i] <- as.numeric(participant_number)
   
   ## Extract Data for Incongruent Trials
   # Incongruent_and_audio
@@ -366,7 +367,7 @@ rm(congruent_and_audio.visual1, congruent_and_audio1, congruent_and_visual1, inc
 # In the PC folder, there is one .csv file, semicolon separated, for each participant. They will be imported into two separate data frames.
 
 # Set the working directory to the PC folder
-setwd(data_path_PC) 
+setwd("/Users/rasmus/Desktop/VR_Method/RAW PC") 
 
 # Look in the directory and search for CSV files.
 myList <- list.files(pattern = ".csv", recursive = TRUE) #not quite good to name a list "list" becaude it might get confusinng in R at some point, so I changed it to myList 
@@ -386,8 +387,8 @@ for (i in 1:length(myList))
   myData$Distractor.Modality.Block1 <- myData_base$Distractor.Modality.Block1 #replace the character columns with the base data
   
   # Extract Participants number
-  DF$id[i] <- parse_number(myList[i]) #extract participant number from the name of the file
-  
+  participant_number <- sub(".*?(\\d+).*", "\\1", myList[i]) # Essentially, this pattern captures the sequence of digits within the file name and ignores any other characters before or after the digits.
+  DF$id[i] <- as.numeric(participant_number)
   ## Extract Data for Incongruent Trials
   # Incongruent_and_audio
   incongruent_and_audio1 <-

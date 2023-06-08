@@ -1,7 +1,7 @@
 ---
 title: "Data Analyses for Virtual Reality and Computer Screen Experiments"
 author: "Rasmus Ahmt & Marta Topor"
-date: "2023-05-08"
+date: "2023-06-08"
 output: word_document
 ---
 
@@ -33,9 +33,9 @@ library(effectsize)
 Sys.setenv(lang = "en_UK")
 
 #Data paths Marta
-data_path_VR <- "~/6. VR Study/VR_Method/VR_Method"
-data_path_PC <- "~/6. VR Study/VR_Method/VR_Method/RAW PC/PC attention data RAW-kopi"
-output <- "~/6. VR Study/VR_Method/VR_Method"
+data_path_VR <- "~/6. VR Study/VR_Method/RAW VR"
+data_path_PC <- "~/6. VR Study/VR_Method/RAW PC/PC attention data RAW-kopi"
+output <- "~/6. VR Study/VR_Method"
 
 #Data paths Rasmus
 #data_path_VR <- "/Users/rasmus/Desktop/VR_Method"
@@ -56,9 +56,8 @@ The following analysis steps are included:
 
 ```{r import data for VR}
 # This section of the script is responsible for importing data from the designated folder.
-# The data is imported in a long and tidy format is to ensure that the data can be easily manipulated and analyzed using tidyverse.
 
-#The task that the data were recorded for is a multisensory selective attention task. There are two conditions - VR and PC. The data for these conditons are kept in different folders. 
+#The task that the data were recorded for is a multisensory selective attention task. There are two conditions - VR and PC. The data for these conditions are kept in different folders. 
 
 #_______________VR__________________________#
 # Import all data for the VR condition.
@@ -66,15 +65,15 @@ The following analysis steps are included:
 
 
 # Set working directory
-setwd("/Users/rasmus/Desktop/VR_Method")
+setwd(output)
 
 # Look in the directory and search for CSV files.
-#myList <- list.dirs(path = "/Users/rasmus/Desktop/VR_Method/RAW VR")[-1]
-myList <- list.dirs(path = "/Users/rasmus/Desktop/VR_Method/RAW VR")[-1] #not quite good to name a list "list" because it might get confusing in R at some point, so I changed it to myList, [-1] because the first position listed is the main folder which is not needed here 
-myFolders <- list.dirs(path ="/Users/rasmus/Desktop/VR_Method/RAW VR", full.names = FALSE)[-1]
+myList <- list.dirs(path = data_path_VR)[-1] #[-1] because the first position listed is the main folder which is not needed here 
+
+myFolders <- list.dirs(path =data_path_VR, full.names = FALSE)[-1]
 
 #Create and empty data frame to extract the data
-#The data frame includes columns for mean RTs, RT SDs, median RTs and Accuracy including correct and missed trials. These are extracted for three multisensory modalities (auditory, visual and audio-visual) and three congruency types (congruent, incongruent and neutral). So there are 9 types of trials (3x3) and each type of trial has mean RT, RT SD and Accuracy extracted (9 x 3) resulting in 46 data columns. For Reaction time data - only correct trials are used
+#The data frame includes columns for mean RTs, RT SDs, median RTs and Accuracy including correct and missed trials. These are extracted for three multisensory modalities (auditory, visual and audio-visual) and three congruency types (congruent, incongruent and neutral). So there are 9 types of trials (3x3) and each type of trial has mean RT, RT SD, RT MD, correct answers and missed answers extracted (9 x 5) resulting in 46 data columns incluidng participant ID. For Reaction time data - only correct trials are used
 
 DF <- data.frame(matrix(nrow = length(myList), ncol=46))
 colnames(DF) <- c("id", "incongruent_and_audio_RT", "incongruent_and_audio_RT_sd", "incongruent_and_audio_RT_md", "Correct_answers_incongruent_and_audio", "missed_answers_incongruent_and_audio", "incongruent_and_visual_RT", "incongruent_and_visual_RT_sd", "incongruent_and_visual_RT_md", "Correct_answers_incongruent_and_visual", "missed_answers_incongruent_and_visual", "incongruent_and_audio.visual_RT", "incongruent_and_audio.visual_RT_sd", "incongruent_and_audio.visual_RT_md", "Correct_answers_incongruent_and_audio.visual", "missed_answers_incongruent_and_audio.visual", "congruent_and_audio_RT", "congruent_and_audio_RT_sd", "congruent_and_audio_RT_md", "Correct_answers_congruent_and_audio", "missed_answers_congruent_and_audio", "congruent_and_visual_RT", "congruent_and_visual_RT_sd", "congruent_and_visual_RT_md", "Correct_answers_congruent_and_visual", "missed_answers_congruent_and_visual", "congruent_and_audio.visual_RT", "congruent_and_audio.visual_RT_sd", "congruent_and_audio.visual_RT_md", "Correct_answers_congruent_and_audio.visual", "missed_answers_congruent_and_audio.visual", "neutral_and_audio_RT", "neutral_and_audio_RT_sd", "neutral_and_audio_RT_md", "Correct_answers_neutral_and_audio", "missed_answers_neutral_and_audio", "neutral_and_visual_RT",   "neutral_and_visual_RT_sd", "neutral_and_visual_RT_md", "Correct_answers_neutral_and_visual", "missed_answers_neutral_and_visual", "neutral_and_audio.visual_RT", "neutral_and_audio.visual_RT_sd", "neutral_and_audio.visual_RT_md", "Correct_answers_neutral_and_audio.visual", "missed_answers_neutral_and_audio.visual")
@@ -91,8 +90,7 @@ for (i in 1:length(myList))
   setwd(myList[i])
   myData_base <- read_csv2(list.files(), col_select = c(1:14), col_types = c("nnnnnnnnnnccnc"))  #import base data per participant
   #there are VR specific columns which do not correspond to the columns recorded in the PC task so these are not imported 
-  #the data are in the semicolon separated file with a mix of numbers and characters in one columns so it's difficult to import them all as numeric values 
-  #the solution above works but it forces false numbers to replace characters. These rows must be removed using the code below:
+  #the data are in the semicolon separated file hence why the strange code for importing different column types
   myData <- myData_base %>% filter(`Answers Block1` %in% c("Correct", "Incorrect","None"))
   #lastly, the column names are not as neat as when the data are imported with the read.csv function so they will be replaced
   setwd(myList[i])
@@ -101,7 +99,7 @@ for (i in 1:length(myList))
   colnames(myData) <- header 
   
   # Extract Participants number
-  participant_number <- sub(".*?(\\d+).*", "\\1", myList[i])# Essentially, this pattern captures the sequence of digits within the file name and ignores any other characters before or after the digits.
+  participant_number <- sub(".*?(\\d{5}).*", "\\1", myList[i])# Essentially, this pattern captures the sequence of 5 digits within the file name and ignores any other characters before or after the digits.
   DF$id[i] <- as.numeric(participant_number)
   
   ## Extract Data for Incongruent Trials
@@ -115,11 +113,11 @@ for (i in 1:length(myList))
     )
 
   if (is_empty(incongruent_and_audio1$ReactionTime.Block1) == TRUE) { 
-    DF$incongruent_and_audio_RT[i] <- NA # these should be NAs rather than 0, because RT of 0 is numerically misleading (i.e. it seems as though people responded in 0 seconds - this skews means etc later on)
+    DF$incongruent_and_audio_RT[i] <- NA 
     DF$incongruent_and_audio_RT_sd[i] <- NA
     DF$incongruent_and_audio_RT_md[i] <- NA
   } else{
-    DF$incongruent_and_audio_RT[i] <- mean(incongruent_and_audio1$ReactionTime.Block1, na.rm = TRUE) #here na.rm = TRUE is important because otherwise we will get an NA for the participant
+    DF$incongruent_and_audio_RT[i] <- mean(incongruent_and_audio1$ReactionTime.Block1, na.rm = TRUE) 
     DF$incongruent_and_audio_RT_sd[i] <- sd(incongruent_and_audio1$ReactionTime.Block1, na.rm = TRUE)
     DF$incongruent_and_audio_RT_md[i] <- median(incongruent_and_audio1$ReactionTime.Block1, na.rm = TRUE)
   }
@@ -367,14 +365,10 @@ rm(congruent_and_audio.visual1, congruent_and_audio1, congruent_and_visual1, inc
 # In the PC folder, there is one .csv file, semicolon separated, for each participant. They will be imported into two separate data frames.
 
 # Set the working directory to the PC folder
-setwd("/Users/rasmus/Desktop/VR_Method/RAW PC") 
+setwd(data_path_PC) 
 
 # Look in the directory and search for CSV files.
-myList <- list.files(pattern = ".csv", recursive = TRUE) #not quite good to name a list "list" becaude it might get confusinng in R at some point, so I changed it to myList 
-
-#Loop through the files to extract data for the DF
-# "i" represents the current participant and is set to loop through all files in the directory.
-# It is set to loop from 1 to the length of the list of files in our directory.
+myList <- list.files(pattern = ".csv", recursive = TRUE) 
 
 
 for (i in 1:length(myList))
@@ -387,7 +381,8 @@ for (i in 1:length(myList))
   myData$Distractor.Modality.Block1 <- myData_base$Distractor.Modality.Block1 #replace the character columns with the base data
   
   # Extract Participants number
-  participant_number <- sub(".*?(\\d+).*", "\\1", myList[i]) # Essentially, this pattern captures the sequence of digits within the file name and ignores any other characters before or after the digits.
+  participant_number <- sub(".*?(\\d{5}).*", "\\1", myList[i]) 
+  
   DF$id[i] <- as.numeric(participant_number)
   ## Extract Data for Incongruent Trials
   # Incongruent_and_audio
@@ -400,7 +395,7 @@ for (i in 1:length(myList))
     )
 
   if (is_empty(incongruent_and_audio1$ReactionTime.Block1) == TRUE) { 
-    DF$incongruent_and_audio_RT[i] <- NA # these should be NAs rather than 0, because RT of 0 is numerically misleading (i.e. it seems as though people responded in 0 seconds - this skews means etc later on)
+    DF$incongruent_and_audio_RT[i] <- NA 
     DF$incongruent_and_audio_RT_sd[i] <- NA
     DF$incongruent_and_audio_RT_md[i] <- NA
   } else{
@@ -631,14 +626,14 @@ for (i in 1:length(myList))
   DF$missed_answers_neutral_and_audio.visual[i] <- length(myData$Answer.Codes.Block1[myData$Answer.Codes.Block1 == 0 & myData$Presented.Condition.Block1 == "Neutral" & myData$Distractor.Modality.Block1 == "audio visual"])
 
 }
-# A temporary data set to hold the information from the VR data, so we can reuse this loop for the PC files.
+
 PC_not_done <- DF
 
 ```
 
 ```{r long format for PC}
 #_______________PC___________________________#
-# create a empty data frame that's empty ready to fill it up
+# create a empty data frame ready to fill it up
 LONG_PC_DATA <- data.frame(
   id = character(),
   stimuli_type = character(),
@@ -651,8 +646,9 @@ LONG_PC_DATA <- data.frame(
   stringsAsFactors = FALSE
 )
 
-# set up a loop thats take every ID and execute the loop.
+# Run a loop based in ID numbers
 unique_ID <- unique(PC_not_done$id)
+
 for (i in seq_along(unique_ID)) {
   # filter the data frame to get the rows for the current participant
   participant_data <- filter(PC_not_done, id == unique_ID[i])
@@ -873,8 +869,9 @@ LONG_VR_DATA <- data.frame(
   stringsAsFactors = FALSE
 )
 
-# set up a loop thats take every ID and execute the loop.
+# Make a loop based on ID numbers
 unique_ID <- unique(VR_not_done$id)
+
 for (i in seq_along(unique_ID)) {
   # filter the data frame to get the rows for the current participant
   participant_data <- filter(VR_not_done, id == unique_ID[i])
@@ -1186,7 +1183,7 @@ ATTENTION <- filter(ATTENTION_ptts_filt, !(ID %in% (to_exclude)))
 #organise the dataframe by ID number 
 ATTENTION <- ATTENTION[order(ATTENTION$ID),]
 
-# overview of the amount of participant left 
+# overview of the number of participant left 
 #length(unique(ATTENTION$ID))
 
 rm(unique_ID, unique_ID_keep, to_exclude, PC, VR, x)
@@ -1256,7 +1253,7 @@ for (i in unique_ids) {
   
 }
 
-#------------REACTIONAL TIME COEFFICIENT OF VARIANCE ---------------
+#------------REACTION TIME COEFFICIENT OF VARIANCE ---------------
 
 ATTENTION <- ATTENTION %>%
   mutate(RTCV = RT_sd / RT)
@@ -1348,7 +1345,7 @@ The results show that there are violations of the normality assumption for all v
 ```{r distribution assessment}
 
 #----NORMALITY FOR RT_md ------
-#Info about skreness and kurtosis assessments: https://www.discoveringstatistics.com/repository/exploringdata.pdf 
+#Info about skewness and kurtosis assessments: https://www.discoveringstatistics.com/repository/exploringdata.pdf 
 #Extract Skewness and Kurtosis together with Standard Errors
 y <- descriptives(formula = RT_md ~ condition:stimuli_type, ATTENTION, skew = T, kurt = T) 
 
@@ -1532,7 +1529,7 @@ rm(y, z, skew, kurt, se_skew, se_kurt) #clean objects
 
 
 #-----TABLES--------
-#Make a table with the skewness and kurtosis z-scores to check whether any values are larger that 1.96 or smaller than -1.96
+#Make a table with the skewness and kurtosis z-scores to check whether any values are larger that 1.96 or smaller than -1.96 (non normal distribution)
 kable(normality[,c(3:4, 7:8)], caption = "Skewness and kurtosis z-values for RT medians and accuracy variables")
 kable(normality_RTCV[,c(3:4)], caption = "Skewness and kurtosis values for RTCV")
 kable(normality_cost_ben[,c(3:4, 7:8)], caption = "Skewness and kurtosis z-values for attentional cost and benefits")

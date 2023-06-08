@@ -1655,10 +1655,16 @@ Because of the small sample size which could undermine the results of a linear m
 Here there is a significant effect of condition on RT median with p<.0001. 
 
 ```{r resutls_RT_md}
+#make nicer labels
+mean_RT$stimuli_type[mean_RT$stimuli_type == "audio"] <- "Auditory"
+mean_RT$stimuli_type[mean_RT$stimuli_type == "visual"] <- "Visual"
+mean_RT$stimuli_type[mean_RT$stimuli_type == "audio.visual"] <- "Audio-Visual"
+
 mean_RT$stimuli_type <- as.factor(mean_RT$stimuli_type)
 mean_RT$condition <- as.factor(mean_RT$condition)
 mean_RT$ID <- as.factor(mean_RT$ID)
 
+#this is for the mean marking on the plot
 mean_RT2 <- mean_RT %>%
   group_by(stimuli_type, condition) %>%
   summarise(sd = sd(mean_RT_type),
@@ -1670,7 +1676,7 @@ p1 <- ggplot(mean_RT, aes(x = stimuli_type, y = mean_RT_type)) +
   geom_violin(aes(fill = stimuli_type), alpha = 0.4, trim = FALSE, color = NA) + #show.legend = FALSE,
   geom_jitter(aes(color = stimuli_type), position = position_jitter(0.2), alpha = 0.8) + 
   facet_wrap(~condition) +
-  labs(x = "Stimuli Type", y = "Search Time", color = "Stimuli Type") +
+  labs(x = "Distractor Type", y = "Reaction Time (s)", color = "Distractor Type") +
   theme_bw() +
   guides(fill = FALSE) +
   scale_color_manual(values = c("#0072B2", "#E69F00", "#009E73")) +
@@ -1721,7 +1727,7 @@ mean_RTCV2 <- mean_RTCV %>%
 p2 <- ggplot(mean_RTCV, aes(x = condition, y = mean_RTCV_type)) +
   geom_violin(aes(fill = condition), alpha = 0.4, trim = FALSE, color = NA) + #show.legend = FALSE,
   geom_jitter(aes(color = condition), position = position_jitter(0.2), alpha = 0.8) + 
-  labs(x = "Environment", y = "RT Variability", color = "Condition") +
+  labs(x = "Environment", y = "RTCV", color = "Condition") +
   theme_bw() +
   guides(fill = FALSE) +
   scale_color_manual(values = c("#0072B2", "#E69F00")) +
@@ -1753,6 +1759,11 @@ Here there is a significant effect of condition.
 The follow-up post-hoc test using the Tukey method shows a significant difference between audio & audio.visual conditions and audio & visual conditions but not between visual and audio.visual. This is irrespective of condition (VR vs PC).
 
 ```{r resutls_ACC}
+#make nicer labels
+mean_accuracy$stimuli_type[mean_accuracy$stimuli_type == "audio"] <- "Auditory"
+mean_accuracy$stimuli_type[mean_accuracy$stimuli_type == "visual"] <- "Visual"
+mean_accuracy$stimuli_type[mean_accuracy$stimuli_type == "audio.visual"] <- "Audio-Visual"
+
 mean_accuracy$stimuli_type <- as.factor(mean_accuracy$stimuli_type)
 mean_accuracy$condition <- as.factor(mean_accuracy$condition)
 mean_accuracy$ID <- as.factor(mean_accuracy$ID)
@@ -1768,7 +1779,7 @@ p3 <- ggplot(mean_accuracy, aes(x = stimuli_type, y = mean_acc_type)) +
   geom_violin(aes(fill = stimuli_type), alpha = 0.4, trim = FALSE, color = NA) + #show.legend = FALSE,
   geom_jitter(aes(color = stimuli_type), position = position_jitter(0.2), alpha = 0.8) + 
   facet_wrap(~condition) +
-  labs(x = "Stimuli Type", y = "Accuracy", color = "Stimuli Type") +
+  labs(x = "Distractor Type", y = "Accuracy", color = "Distractor Type") +
   theme_bw() +
   guides(fill = FALSE) +
   scale_color_manual(values = c("#0072B2", "#E69F00", "#009E73")) +
@@ -1823,7 +1834,7 @@ p4 <- ggplot(summary_stats, aes(x = stimuli_type, y = mean, fill = cost_benefit)
   geom_bar(stat = "identity", position = "dodge") +
   facet_wrap(~condition) +
   scale_fill_manual(values = my_colors) +
-  labs(x = "Stimuli Type", y = "Reaction Time Difffrence", fill = "Attention")
+  labs(x = "Distractor Type", y = "Reaction Time Difffrence", fill = "Attention")
 
 p4
 

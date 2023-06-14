@@ -1,6 +1,6 @@
 ## Data and Analysis Repository for  
 ## Developing Virtual Reality and Computer Screen Experiments One to One Using Selective Attention as a Case Study  
-June 2023, Marta Topor and Rasmus Ahmt Hansen
+June 2023, Rasmus Ahmt Hansen and Marta Topor
 
 
 The current repository holds all data and analysis scripts used in the report named above. Data files are saved in .csv format and analysis scripts were written using R and R Markdown.  
@@ -23,4 +23,5 @@ The selective attention task we developed and implemented can be accessed here:
 
 ### Analysis  
 - Demographic analyses can be found in the demographics.R file  
-- Data processing, quality control and statistical analyses can be found in the full_analysis_script.Rmd  
+- Data processing, quality control and statistical analyses can be found in the full_analysis_script.Rmd 
+- The plots folder holds plots used in the study report  

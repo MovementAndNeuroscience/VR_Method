@@ -1261,6 +1261,9 @@ ATTENTION <- ATTENTION %>%
 #-----------ACCURACY--------------------------
 
 ATTENTION$accuracy <- ATTENTION$corrects/16
+
+#Save the attention dataset 
+write.csv(ATTENTION, "final_data_set.csv")
 ```
 
 

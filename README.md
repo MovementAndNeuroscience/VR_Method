@@ -25,3 +25,5 @@ The selective attention task we developed and implemented can be accessed here:
 - Demographic analyses can be found in the demographics.R file  
 - Data processing, quality control and statistical analyses can be found in the full_analysis_script.Rmd 
 - The plots folder holds plots used in the study report  
+
+[![DOI](https://zenodo.org/badge/618326055.svg)](https://zenodo.org/badge/latestdoi/618326055)

@@ -1,0 +1,12 @@
+cff-version: 1.1.0
+message: "If you use this Data and/or analysis, please cite it as below."
+authors:
+  - family-names: Marta Katarzyna 
+    given-names: Topor
+    orcid: https://orcid.org/0000-0003-3761-392X
+  - family-names: Rasmus Ahmt 
+    given-names: Hansen
+    orcid: https://orcid.org/0000-0003-1383-2992
+title: MovementAndNeuroscience/VR_Method: Selective Attention : Data And Analysis
+version: data
+date-released: 2023-06-15
